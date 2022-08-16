@@ -18,12 +18,12 @@ bool function SpawnShipForPlayer( entity player, array<string> args )
 {
 	string type = "straton"
 	if ( args.len() )
-		type = args[0]	
+		type = args[0]
 
 	TraceResults r = GetViewTrace( player )
 
 	var s = Spaceship( type, r.endPos )
-	if( r.hitEnt )
-	s.mover.SetParent( r.hitEnt )
+	//if( r.hitEnt )
+	//s.mover.SetParent( r.hitEnt )
 	return true
 }
