@@ -128,10 +128,15 @@ void function SpaceShipClassesInit()
 
 			AddButtonPressedPlayerInputCallback( player, IN_JUMP , OnJumpInput ) // starting / landing
 			AddButtonPressedPlayerInputCallback( player, IN_DUCK , OnExitUsed ) // exiting
+
 			AddButtonPressedPlayerInputCallback( player, IN_ZOOM , OnFreeViewPressed ) // freeview start
 			AddButtonReleasedPlayerInputCallback( player, IN_ZOOM, OnFreeViewReleased ) // freeview end
+			AddButtonPressedPlayerInputCallback( player, IN_ZOOM_TOGGLE , OnFreeViewPressed ) // freeview start
+			AddButtonReleasedPlayerInputCallback( player, IN_ZOOM_TOGGLE, OnFreeViewReleased ) // freeview end
+
 			AddButtonPressedPlayerInputCallback( player, IN_BACK, OnMoveSlowPressed ) // move slow start
 			AddButtonReleasedPlayerInputCallback( player, IN_BACK, OnMoveSlowReleased ) // move slow end
+
 			AddButtonPressedPlayerInputCallback( player, IN_ATTACK, OnAttackPressed ) // ship attack
 			AddButtonReleasedPlayerInputCallback( player, IN_ATTACK, OnAttackReleased ) // ship attack
 
@@ -161,6 +166,10 @@ void function SpaceShipClassesInit()
 			DeregisterAllButtons( player )
 
 			RemoveDeathCallback( "player", OnPilotDeath )
+
+			if (!this.engineOn) {
+				player.SetOrigin(FindNearestSafeDisembarkPos(player, player.GetOrigin() , 1) )
+			}
 
 			this.ship.Code_SetTeam( TEAM_UNASSIGNED )
 		}
@@ -474,4 +483,60 @@ void function DeregisterAllButtons( entity player )
 	RemoveButtonReleasedPlayerInputCallback( player, IN_BACK, OnMoveSlowReleased )
 	RemoveButtonPressedPlayerInputCallback( player, IN_ATTACK, OnAttackPressed )
 	RemoveButtonReleasedPlayerInputCallback( player, IN_ATTACK, OnAttackReleased )
+}
+
+vector function FindNearestSafeDisembarkPos(entity player, vector targetPos, int severity)
+{
+    if(severity >= 600)
+    {
+        print("Phase error:could not find a save position for player")
+       return < player.GetOrigin().x,player.GetOrigin().y,player.GetOrigin().z+1500 >
+    }
+
+
+	//check if adding/removing severity  from the x,y or z coords will stop the player from clipping
+
+	//adding / removing y
+    if( !PlayerPosInSolid( player, < targetPos.x, targetPos.y+severity, targetPos.z > ) )
+        return < targetPos.x, targetPos.y+severity, targetPos.z >
+
+    if( !PlayerPosInSolid( player, < targetPos.x, targetPos.y-severity, targetPos.z > ) )
+        return < targetPos.x, targetPos.y-severity, targetPos.z >
+
+	//adding / removing x
+    if( !PlayerPosInSolid( player, < targetPos.x+severity, targetPos.y, targetPos.z > ) )
+        return < targetPos.x+severity, targetPos.y, targetPos.z >
+
+    if( !PlayerPosInSolid( player, < targetPos.x-severity, targetPos.y, targetPos.z > ) )
+        return < targetPos.x-severity, targetPos.y, targetPos.z >
+
+	//adding / removing z(height)
+	if( !PlayerPosInSolid( player, < targetPos.x, targetPos.y, targetPos.z +severity> ) )
+        return < targetPos.x, targetPos.y, targetPos.z +severity>
+
+    if( !PlayerPosInSolid( player, < targetPos.x, targetPos.y, targetPos.z -severity > ) )
+        return < targetPos.x, targetPos.y, targetPos.z -severity>
+
+
+    return FindNearestSafePos( player, targetPos, severity+5 ) //severity goes up by 5 each time adding severity doesnt stop the player from clipping
+}
+
+bool function PlayerPosInSolid( entity player, vector targetPos ) //checks if a the player would be clipping if he were in targetpos
+{
+    int solidMask = TRACE_MASK_PLAYERSOLID
+    vector mins
+    vector maxs
+    int collisionGroup = TRACE_COLLISION_GROUP_PLAYER
+    array<entity> ignoreEnts = []
+    ignoreEnts.append( player ) //in case we want to check player's current pos
+    TraceResults result
+
+    mins = player.GetPlayerMins()
+    maxs = player.GetPlayerMaxs()
+    result = TraceHull( targetPos, targetPos + Vector( 0, 0, 1), mins, maxs, ignoreEnts, solidMask, collisionGroup )
+    if ( result.startSolid )
+        return true
+
+    return false
+
 }
