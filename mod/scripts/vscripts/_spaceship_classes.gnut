@@ -154,6 +154,8 @@ void function SpaceShipClassesInit()
 			if(!IsValid(this.ship.GetOwner())) {
 				return
 			}
+
+
 			entity player = expect entity( this.ship.GetOwner() )
 			player.spaceship = null
 
@@ -163,7 +165,11 @@ void function SpaceShipClassesInit()
 
 			if( this.engineOn && IsValid( player ) && expect bool(shouldeject)) {
 				if (PlayerPosInSolid(player, player.GetOrigin())) {
-					player.SetOrigin(FindNearestSafeDisembarkPos(player,player.GetOrigin(),1))
+						player.SetOrigin(FindNearestSafeDisembarkPos(player,player.GetOrigin(),1)+(player.GetForwardVector()*-200)) //slight offset back so the player doesnt just crash into the wall when vel is added
+
+						if (PlayerPosInSolid(player, player.GetOrigin())) {
+							player.SetOrigin(FindNearestSafeDisembarkPos(player,player.GetOrigin(),1)) //if the offsett messed things up just tp again
+						}
 				}
 				player.SetVelocity( player.GetVelocity() + <0,0,1000> )
 			}
@@ -251,12 +257,13 @@ void function SpaceShipClassesInit()
 		function ClippingCheck() {
 			while ( IsValid( expect entity( this.ship ) ) )
 			{
-				if ( this.engineOn )
+				if ( this.engineOn)
 				{
 					local ignorents = [];
-					if(this.ship.GetOwner()) {
-						ignorents.append(this.ship.GetOwner())
+					foreach (playerent in GetPlayerArray()) {
+						ignorents.append(playerent)
 					}
+					ignorents.append(this.ship)
 
 					entity ent = expect entity (this.ship)
 					int solidMask = TRACE_MASK_PLAYERSOLID
@@ -343,7 +350,7 @@ void function SpaceShipClassesInit()
 					config.groundToFeet <- 100.0
 					config.shipwidth <- 250
 					config.shipheight <- 100
-					config.startheight <- 500
+					config.startheight <- 650
 				break
 				case "crow":
 					table barrel = {
@@ -361,7 +368,7 @@ void function SpaceShipClassesInit()
 					config.groundToFeet <- 100.0
 					config.shipwidth <- 250
 					config.shipheight <- 100
-					config.startheight <- 500
+					config.startheight <- 650
 				break
 				case "straton":
 				default:
@@ -394,8 +401,8 @@ void function SpaceShipClassesInit()
 					config.moveTime <- 0.5
 					config.groundToFeet <- 0.0
 					config.shipwidth <- 100
-					config.shipheight <- 70
-					config.startheight <- 200
+					config.shipheight <- 45
+					config.startheight <- 400
 				break
 			}
 			return config
@@ -427,6 +434,7 @@ void function OnShipDamaged( entity ship, var damageInfo )
 	if( newHealth <= 0 )
 	{
 		spaceships[ship].Explode()
+		print("dead")
 	}
 
 }
