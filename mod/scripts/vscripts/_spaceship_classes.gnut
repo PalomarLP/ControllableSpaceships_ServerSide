@@ -518,7 +518,7 @@ vector function FindNearestSafeDisembarkPos(entity player, vector targetPos, int
         return < targetPos.x, targetPos.y, targetPos.z -severity>
 
 
-    return FindNearestSafePos( player, targetPos, severity+5 ) //severity goes up by 5 each time adding severity doesnt stop the player from clipping
+    return FindNearestSafeDisembarkPos( player, targetPos, severity+5 ) //severity goes up by 5 each time adding severity doesnt stop the player from clipping
 }
 
 bool function PlayerPosInSolid( entity player, vector targetPos ) //checks if a the player would be clipping if he were in targetpos
