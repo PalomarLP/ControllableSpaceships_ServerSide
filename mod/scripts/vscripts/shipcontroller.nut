@@ -11,6 +11,7 @@ struct {
 void function ShipControllerInit()
 {
 	AddClientCommandCallback( "ship", SpawnShipForPlayer )
+	AddClientCommandCallback( "test", testfunc )
 }
 
 // Spawn a new spaceship where the player is looking at
@@ -25,5 +26,12 @@ bool function SpawnShipForPlayer( entity player, array<string> args )
 	var s = Spaceship( type, r.endPos )
 	//if( r.hitEnt )
 	//s.mover.SetParent( r.hitEnt )
+	return true
+}
+
+bool function testfunc (entity player, array<string> args ) {
+
+
+	//EmitSoundOnEntity(player,"titan_death_explode")
 	return true
 }

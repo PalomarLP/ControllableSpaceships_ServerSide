@@ -85,6 +85,7 @@ void function SpaceShipClassesInit()
 
 			thread this.MoveShip()
 			thread this.RotateShip()
+			thread this.ClippingCheck()
 
 
 		}
@@ -148,8 +149,11 @@ void function SpaceShipClassesInit()
 			this.ship.Code_SetTeam( player.GetTeam() )
 		}
 
-		function Disembark() /* void */
+		function Disembark(shouldeject) /* void */
 		{
+			if(!IsValid(this.ship.GetOwner())) {
+				return
+			}
 			entity player = expect entity( this.ship.GetOwner() )
 			player.spaceship = null
 
@@ -157,11 +161,16 @@ void function SpaceShipClassesInit()
 			player.UnforceStand()
 			this.ship.GetOwner().EnableWeaponViewModel()
 
-			if( this.engineOn && IsValid( player ) )
-				this.Eject()
+			if( this.engineOn && IsValid( player ) && expect bool(shouldeject)) {
+				if (PlayerPosInSolid(player, player.GetOrigin())) {
+					player.SetOrigin(FindNearestSafeDisembarkPos(player,player.GetOrigin(),1))
+				}
+				player.SetVelocity( player.GetVelocity() + <0,0,1000> )
+			}
 
 			this.ship.SetOwner( null )
 			this.SetShipFree()
+
 
 			DeregisterAllButtons( player )
 
@@ -174,11 +183,6 @@ void function SpaceShipClassesInit()
 			this.ship.Code_SetTeam( TEAM_UNASSIGNED )
 		}
 
-		function Eject() /* void */
-		{
-			entity player = expect entity( this.ship.GetOwner() )
-			player.SetVelocity( player.GetVelocity() + <0,0,1000> )
-		}
 
 		function MoveShip() /* void */
 		{
@@ -223,47 +227,100 @@ void function SpaceShipClassesInit()
 
 		function StartingSequence() /* void */
 		{
-			if ( this.inManeuver )
-				return
+			try {
+				if ( this.inManeuver )
+					return
 
-			this.mover.ClearParent()
+				this.mover.ClearParent()
 
-			this.mover.NonPhysicsMoveTo(
-				expect vector( this.ship.GetOrigin() + <0,0,200> ),
-				expect float( this.startManeuverTime ), 0.5,0.5 )
+				this.mover.NonPhysicsMoveTo(
+					expect vector( this.ship.GetOrigin() + <0,0,this.config.startheight> ),
+					expect float( this.startManeuverTime ), 0.5,0.5 )
 
-			thread void function() {
-				this.inManeuver = true
-				wait expect float( this.startManeuverTime )
-				this.engineOn = true
-			}()
+				thread void function() {
+					this.inManeuver = true
+					wait expect float( this.startManeuverTime )
+					this.engineOn = true
+				}()
 
-			this.inManeuver = false
+				this.inManeuver = false
+			} catch(ex) {} //ship might get destroyed in maneuver
 
+		}
+
+		function ClippingCheck() {
+			while ( IsValid( expect entity( this.ship ) ) )
+			{
+				if ( this.engineOn )
+				{
+					local ignorents = [];
+					if(this.ship.GetOwner()) {
+						ignorents.append(this.ship.GetOwner())
+					}
+
+					entity ent = expect entity (this.ship)
+					int solidMask = TRACE_MASK_PLAYERSOLID
+					vector orinal_pos = ent.GetOrigin()
+
+
+					TraceResults result
+
+					vector mins = < -this.config.shipwidth,-this.config.shipwidth,0>
+					vector maxs = <this.config.shipwidth,this.config.shipwidth,this.config.shipheight>
+
+					result = TraceHull( orinal_pos , orinal_pos, mins, maxs, ignorents, solidMask, TRACE_COLLISION_GROUP_DEBRIS )
+					if ( IsValid( result.hitEnt )  ){
+						this.Explode()
+					}
+
+
+				}
+				WaitFrame()
+			}
+		}
+
+		function Explode() {
+			this.ship.ClearParent()
+			EmitSoundAtPosition( TEAM_UNASSIGNED, this.ship.GetOrigin(),"titan_death_explode")
+
+			if( this.ship.GetOwner() )
+			{
+			    this.ship.GetOwner().ClearParent()
+				this.Disembark(true)
+			}
+
+			this.ship.Destroy()
+
+			if(IsValid(this.mover)) { this.mover.Destroy() }
+
+
+			PlayFX( FX_MEGA_TURRECT_IMPACT_EXPLOSION,  expect vector (this.ship.GetOrigin()))
 		}
 
 		function LandingSequence( /* vector */ landingSpot) /* void */
 		{
-			if ( this.inManeuver )
-				return
+			try {
+				if ( this.inManeuver )
+					return
 
-			this.engineOn = false
+				this.engineOn = false
 
-			vector distant = expect vector( this.ship.GetOrigin() ) + expect vector( this.ship.GetForwardVector() ) * 500
-			float t = expect float( this.config.moveTime )
-			this.mover.NonPhysicsMoveTo( distant, t, 0, t )
+				vector distant = expect vector( this.ship.GetOrigin() ) + expect vector( this.ship.GetForwardVector() ) * 500
+				float t = expect float( this.config.moveTime )
+				this.mover.NonPhysicsMoveTo( distant, t, 0, t )
 
-			vector angles = expect vector( this.mover.GetAngles() )
-			this.mover.RotateTo(<0,angles.y,0>, expect float( this.landingManeuverTime ), t / 3, t / 3 )
+				vector angles = expect vector( this.mover.GetAngles() )
+				this.mover.RotateTo(<0,angles.y,0>, expect float( this.landingManeuverTime ), t / 3, t / 3 )
 
-			thread void function( float t, vector landingSpot ) {
-				this.inManeuver = true
-				wait t + 0.5
-				this.mover.NonPhysicsMoveTo( landingSpot, expect float( this.landingManeuverTime ), t / 3, t / 3 )
-				wait t
-			}( t, expect vector( landingSpot ) )
+				thread void function( float t, vector landingSpot ) {
+					this.inManeuver = true
+					wait t + 0.5
+					this.mover.NonPhysicsMoveTo( landingSpot, expect float( this.landingManeuverTime ), t / 3, t / 3 )
+					wait t
+				}( t, expect vector( landingSpot ) )
 
-			this.inManeuver = false
+				this.inManeuver = false
+			} catch(ex) {this.inManeuver = false} //ship might get destroyed in the maneuver
 		}
 
 		function ConfigFromType( string type )
@@ -284,6 +341,9 @@ void function SpaceShipClassesInit()
 					config.health <- 800
 					config.moveTime <- 0.7
 					config.groundToFeet <- 100.0
+					config.shipwidth <- 250
+					config.shipheight <- 100
+					config.startheight <- 500
 				break
 				case "crow":
 					table barrel = {
@@ -299,6 +359,9 @@ void function SpaceShipClassesInit()
 					config.health <- 500
 					config.moveTime <- 1.0
 					config.groundToFeet <- 100.0
+					config.shipwidth <- 250
+					config.shipheight <- 100
+					config.startheight <- 500
 				break
 				case "straton":
 				default:
@@ -330,6 +393,9 @@ void function SpaceShipClassesInit()
 					config.health <- 300
 					config.moveTime <- 0.5
 					config.groundToFeet <- 0.0
+					config.shipwidth <- 100
+					config.shipheight <- 70
+					config.startheight <- 200
 				break
 			}
 			return config
@@ -337,12 +403,15 @@ void function SpaceShipClassesInit()
 	}
 }
 
+
+/////////////////////////////////////Damage-Callbacks//////////////////////////////////////////////////
+
+
 void function OnShipDamaged( entity ship, var damageInfo )
 {
 	if ( !IsValid( ship ) )
 		return
 
-	// ship.Destroy()
 
 	int damageSourceID = DamageInfo_GetDamageSourceIdentifier( damageInfo )
 	entity attacker = DamageInfo_GetAttacker( damageInfo )
@@ -357,21 +426,9 @@ void function OnShipDamaged( entity ship, var damageInfo )
 
 	if( newHealth <= 0 )
 	{
-		ship.ClearParent()
-		var spaceship = spaceships[ ship ]
-		if( spaceship.ship.GetOwner() )
-		{
-			spaceship.ship.GetOwner().ClearParent()
-			spaceship.Disembark()
-		}
-
-
-		spaceship.mover.Destroy()
-
-		PlayFX( FX_MEGA_TURRECT_IMPACT_EXPLOSION,  ship.GetOrigin() /* + < 0, 0, expect float( spaceships[ ship ].config.groundToFeet ) > */ )
+		spaceships[ship].Explode()
 	}
 
-	// Remote_CallFunction_NonReplay( GetPlayerArray()[0], "Server_SetSpaceshipHealthBar", newHealth )
 }
 
 
@@ -396,7 +453,7 @@ void function OnExitUsed( entity player )
 
 	var spaceship = player.spaceship
 	if ( spaceship )
-		player.spaceship.Disembark()
+		player.spaceship.Disembark(true)
 }
 
 void function OnJumpInput( entity player )
@@ -411,7 +468,6 @@ void function OnJumpInput( entity player )
 		if ( results.hitEnt )
 		{
 			player.spaceship.LandingSequence( results.endPos + <0,0,5> )
-			player.spaceship.mover.SetParent( results.hitEnt )
 		}
 	}
 	else
@@ -453,7 +509,9 @@ void function OnAttackReleased( entity player )
 
 void function OnPilotDeath( entity player, var damageInfo )
 {
-	player.spaceship.Disembark()
+	try{
+	player.spaceship.Disembark(false)
+	}catch(ex){}
 }
 
 
@@ -514,8 +572,8 @@ vector function FindNearestSafeDisembarkPos(entity player, vector targetPos, int
 	if( !PlayerPosInSolid( player, < targetPos.x, targetPos.y, targetPos.z +severity> ) )
         return < targetPos.x, targetPos.y, targetPos.z +severity>
 
-    if( !PlayerPosInSolid( player, < targetPos.x, targetPos.y, targetPos.z -severity > ) )
-        return < targetPos.x, targetPos.y, targetPos.z -severity>
+    //if( !PlayerPosInSolid( player, < targetPos.x, targetPos.y, targetPos.z -severity > ) ) causes weird behaviour
+    //    return < targetPos.x, targetPos.y, targetPos.z -severity>
 
 
     return FindNearestSafeDisembarkPos( player, targetPos, severity+5 ) //severity goes up by 5 each time adding severity doesnt stop the player from clipping
