@@ -139,7 +139,7 @@ void function SpaceShipClassesInit()
 
 			this.SetShipOccupied()
 
-			Remote_CallFunction_NonReplay( player, "CreateHealthBar", this.ship.GetEncodedEHandle() )
+
 			AddDeathCallback( "player", OnPilotDeath )
 
 			this.ship.Code_SetTeam( player.GetTeam() )
@@ -162,7 +162,6 @@ void function SpaceShipClassesInit()
 
 			DeregisterAllButtons( player )
 
-			Remote_CallFunction_NonReplay( player, "DestroyHealthBar" )
 			RemoveDeathCallback( "player", OnPilotDeath )
 
 			this.ship.Code_SetTeam( TEAM_UNASSIGNED )

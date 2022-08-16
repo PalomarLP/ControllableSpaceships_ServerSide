@@ -1,22 +1,13 @@
 {
-	"Name": "[4] Controllable Spaceships",
+	"Name": "Controllable Spaceships",
 	"Description": "type \"ship\" in the console to spawn a spaceship.\nPress [space] when inside of the ship to liftoff or land",
 	"Version": "0.2.1",
 	"LoadPriority": 1,
-	"RequiredOnClient": true,
+	"RequiredOnClient": false,
 	"ConVars": [],
 	"Scripts": [
 		{
-			"Path": "sh_spaceships.nut",
-			"RunOn": "CLIENT || SERVER",
-			"ClientCallback": {
-				"Before": "Spaceship_Network"
-			},
-			"ServerCallback": {
-				"Before": "Spaceship_Network"
-			}
-		},
-		{
+
 			"Path": "_spaceship_classes.gnut",
 			"RunOn": "SERVER",
 			"ServerCallback": {
@@ -29,10 +20,6 @@
 			"ServerCallback": {
 				"After": "ShipControllerInit"
 			}
-		},
-		{
-			"Path": "cl_spaceship_ui.nut",
-			"RunOn": "CLIENT"
 		}
 	],
 	"Localisation": []
