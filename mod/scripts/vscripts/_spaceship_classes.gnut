@@ -155,7 +155,6 @@ void function SpaceShipClassesInit()
 				player.SetAngles( shipAngles )
 
 				AddButtonPressedPlayerInputCallback( player, IN_ATTACK, OnAttackPressed ) // ship attack
-				AddButtonReleasedPlayerInputCallback( player, IN_ATTACK, OnAttackReleased ) // ship attack
 			}
 
 			this.PlayShipInfoSound("HUD_Boost_Card_Radar_Jammer_RedTextBeep_1P",true)
@@ -171,7 +170,6 @@ void function SpaceShipClassesInit()
 
 			if (this.config.dualseat == false) {
 				AddButtonPressedPlayerInputCallback( player, IN_ATTACK, OnAttackPressed ) // ship attack
-				AddButtonReleasedPlayerInputCallback( player, IN_ATTACK, OnAttackReleased ) // ship attack
 			}
 
 
@@ -250,8 +248,8 @@ void function SpaceShipClassesInit()
 				if ( this.engineOn )
 				{
 					float moveTime = expect float( this.config.moveTime )
-					if ( this.moveSlow )
-						moveTime = moveTime * 2
+					if ( this.moveSlow == true ) {moveTime = moveTime * 2}
+
 					vector moveTo = expect vector( this.ship.GetOrigin() + this.ship.GetForwardVector() * 500 )
 
 					this.mover.NonPhysicsMoveTo( moveTo, moveTime , 0, 0.2 )
@@ -375,32 +373,41 @@ void function SpaceShipClassesInit()
 					entity weapon = guy.GetMainWeapons()[0]
 					for (int i=1;i<5;i++) {
 						if(!this.ship) {break}
-						vector shootvector = <this.ship.GetForwardVector().x,this.ship.GetForwardVector().y,this.ship.GetForwardVector().z> //slightly up
+						try { //might fail if ship crashes
+							vector shootvector = <this.ship.GetForwardVector().x,this.ship.GetForwardVector().y,this.ship.GetForwardVector().z + 0.05> //slightly up to match the green thingy
 
-						vector au = AnglesToUp(this.ship.GetAngles())
-						vector af = AnglesToForward(this.ship.GetAngles())
-						vector ar = AnglesToRight(this.ship.GetAngles())
-						vector origin;
+							vector au = AnglesToUp(this.ship.GetAngles())
+							vector af = AnglesToForward(this.ship.GetAngles())
+							vector ar = AnglesToRight(this.ship.GetAngles())
+							vector origin;
 
-						switch (i) {
-							case 1:
+
+							if (i == 1) {
+								print("barrel1")
 								origin = expect vector (this.ship.GetOrigin() + (af * this.config.barrel1cannonPosForward) + (au * this.config.barrel1cannonPosUp) + (ar * this.config.barrel1cannonPosRight))
-							case 2:
-								origin = expect vector (this.ship.GetOrigin() + (af * this.config.barrel2cannonPosForward) + (au * this.config.barrel2cannonPosUp) + (ar * this.config.barrel2cannonPosRight))
-							case 3:
+							}
+							if (i == 2) {
+								print("barrel2")
+								origin = expect vector (this.ship.GetOrigin() + (af * this.config.barrel2cannonPosForward) + (au * this.config.barrel2cannonPosUp) + (ar * this.config.barrel2cannonPosRight))}
+							if (i == 3) {
+								print("barrel3")
 								origin = expect vector (this.ship.GetOrigin() + (af * this.config.barrel3cannonPosForward) + (au * this.config.barrel3cannonPosUp) + (ar * this.config.barrel3cannonPosRight))
-							case 4: default:
+							}
+							if (i == 4) {
+								print("barrel4")
 								origin = expect vector (this.ship.GetOrigin() + (af * this.config.barrel4cannonPosForward) + (au * this.config.barrel4cannonPosUp) + (ar * this.config.barrel4cannonPosRight))
-						}
+							}
 
-						weapon.FireWeaponBullet( origin  , shootvector, 1, DF_GIB | DF_EXPLOSION )
-						this.PlayShipInfoSound("weapon_chargerifle_fire_1p",true)
-						//weapon_chargerifle_fire_1p
 
-						vector traceEnd = expect vector(this.ship.GetOrigin() + af * 56756) //max length
-						TraceResults r = TraceLine( origin, traceEnd, [], TRACE_MASK_SHOT, TRACE_COLLISION_GROUP_NONE )
-						CreateWeaponTracer(origin , r.endPos ,0.05)
 
+							weapon.FireWeaponBullet( origin  , shootvector, 1, DF_GIB | DF_EXPLOSION )
+							this.PlayShipInfoSound("weapon_chargerifle_fire_1p",true)
+							//weapon_chargerifle_fire_1p
+
+							vector traceEnd = expect vector(this.ship.GetOrigin() + shootvector * 56756) //max length
+							TraceResults r = TraceLine( origin, traceEnd, [], TRACE_MASK_SHOT, TRACE_COLLISION_GROUP_NONE )
+							CreateWeaponTracer(origin , r.endPos ,0.05)
+						}catch(ex) {}
 						wait 0.05
 					}
 					guy.Destroy()
@@ -476,10 +483,10 @@ void function SpaceShipClassesInit()
 					}
 
 					config.model <- $"models/vehicle/goblin_dropship/goblin_dropship_hero.mdl"
-					config.cockpitForwardCorrection <-  260.0
-					config.cockpitUpwardCorrection <-  -30.0
-					config.cockpitForwardCorrectionShooter <- 310.0
-					config.cockpitUpwardCorrectionShooter <- -60.0
+					config.cockpitForwardCorrection <- 310.0
+					config.cockpitUpwardCorrection <-  -60.0
+					config.cockpitForwardCorrectionShooter <- 260.0
+					config.cockpitUpwardCorrectionShooter <- -30.0
 					config.explosions <- [ FX_MEGA_TURRECT_IMPACT_EXPLOSION ]
 					config.health <- 800
 					config.moveTime <- 0.7
@@ -539,7 +546,7 @@ void function SpaceShipClassesInit()
 					//
 					config.explosions <- [ FX_MEGA_TURRECT_IMPACT_EXPLOSION ]
 					config.health <- 300
-					config.moveTime <- 0.65
+					config.moveTime <- 0.6
 					config.groundToFeet <- 0.0
 					config.shipwidth <- 100
 					config.shipheight <- 45
@@ -659,12 +666,6 @@ void function OnAttackPressed( entity player )
 
 }
 
-void function OnAttackReleased( entity player )
-{
-
-
-}
-
 void function OnPilotDeath( entity player, var damageInfo )
 {
 	try{
@@ -698,7 +699,6 @@ void function DeregisterAllButtons( entity player )
 	RemoveButtonPressedPlayerInputCallback( player, IN_BACK, OnMoveSlowPressed )
 	RemoveButtonReleasedPlayerInputCallback( player, IN_BACK, OnMoveSlowReleased )
 	RemoveButtonPressedPlayerInputCallback( player, IN_ATTACK, OnAttackPressed )
-	RemoveButtonReleasedPlayerInputCallback( player, IN_ATTACK, OnAttackReleased )
 }
 
 vector function FindNearestSafeDisembarkPos(entity player, vector targetPos, int severity)

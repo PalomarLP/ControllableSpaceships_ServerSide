@@ -36,29 +36,11 @@ bool function testfunc (entity player, array<string> args ) {
 }
 
 void function testpls(entity player) {
-	int burst = 0
-	while (burst < 1) {
-		burst ++
-		entity guy = CreateSoldier(TEAM_BOTH,player.GetOrigin(),player.GetAngles())
-		DispatchSpawn( guy )
-		guy.Hide()
-		guy.ReplaceActiveWeapon("mp_weapon_defender")
-		entity weapon = guy.GetMainWeapons()[0]
-
-		vector origin = player.GetOrigin() + player.GetViewVector() * 50
-		vector dir = player.GetViewVector()
-		weapon.FireWeaponBullet( origin , dir, 1, DF_GIB | DF_EXPLOSION )
-
-		vector traceEnd = origin + player.GetViewVector() * 56756 //max length
-		TraceResults r = TraceLine( origin, traceEnd, [], TRACE_MASK_SHOT, TRACE_COLLISION_GROUP_NONE )
-
-		CreateWeaponTracer(origin , r.endPos ,1)
-
-		guy.Destroy()
-		weapon.Destroy()
-		wait 0.05
+	if (player.spaceship) {
+		player.spaceship.config.moveTime = 100.0
 	}
 }
+
 
 /*
 entity guy = CreateSoldier(TEAM_UNASSIGNED,expect vector(this.ship.GetOrigin()),expect vector(this.ship.GetAngles()))
