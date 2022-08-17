@@ -204,7 +204,7 @@ void function SpaceShipClassesInit()
 
 			if( this.engineOn && IsValid( player ) && expect bool(shouldeject)) { //ejection
 				if (PlayerPosInSolid(player, player.GetOrigin())) {
-						player.SetOrigin(FindNearestSafeDisembarkPos(player,player.GetOrigin(),1)+(player.GetForwardVector()*-200)+<0,0,100>) //slight offset back so the player doesnt just crash into the wall when vel is added
+						player.SetOrigin(FindNearestSafeDisembarkPos(player,player.GetOrigin(),1)+(player.GetForwardVector()*-200)+<0,0,250>) //slight offset back so the player doesnt just crash into the wall when vel is added
 
 						if (PlayerPosInSolid(player, player.GetOrigin())) {
 							player.SetOrigin(FindNearestSafeDisembarkPos(player,player.GetOrigin(),1)) //if the offsett messed things up just tp again
