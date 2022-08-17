@@ -31,7 +31,5 @@ bool function SpawnShipForPlayer( entity player, array<string> args )
 
 bool function testfunc (entity player, array<string> args ) {
 
-
-	//EmitSoundOnEntity(player,"titan_death_explode")
 	return true
 }

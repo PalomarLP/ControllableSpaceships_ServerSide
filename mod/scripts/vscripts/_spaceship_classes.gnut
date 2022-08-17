@@ -41,12 +41,13 @@ void function SpaceShipClassesInit()
 		mover = null // script_mover	| moves the player and prop
 		engineOn = false // boolean		| controls if the spaceship is allowed to move
 		moveTime = 0.5 // float			| time of the mover to move to the next point
-		inManeuver = false // boolean	| true if the ship is landing / starting <> replace this with signals maybe
+		inManeuver = false // boolean	| true if the ship is landing / starting
 		freeView = false // boolean		| true when the player is not changing directions with view
 		moveSlow = false // boolean		| move slowly, still very janky
-		startManeuverTime = 1.5
-		landingManeuverTime = 1.5
-		embarkedplayers = {};
+		startManeuverTime = 1.5 //float | how long the starting sequence takes
+		landingManeuverTime = 1.5//float| how long the landing sequence takes
+		embarkedplayers = {}; //table   | tracks players who are in the ship
+		soundsplayed =[]; //array       | tracks what info sounds have been played (eg "critical damge" or smth like that)
 
 		// ships can't be damaged by a ship of the same team. Also applies to TEAM_UNSASSIGNED
 		constructor( string type , var origin = <0,0,0>, var angles = <0,0,0>, team = TEAM_UNASSIGNED )
@@ -110,24 +111,24 @@ void function SpaceShipClassesInit()
 			//this.ship.SetOwner( player )
 			player.spaceship = this
 
-
 			vector shipAngles = expect vector( this.ship.EyeAngles() )
 			vector shipOrigin = expect vector( this.ship.GetOrigin() )
 			player.SetAngles(<0,shipAngles.y,shipAngles.z>)
 
+			player.ForceStand()
+
 			if (this.embarkedplayers["driver"] == null) {
 				this.embarkedplayers["driver"] <- player
 
-				vector af = AnglesToForward( shipAngles )
+				vector au = AnglesToUp( shipAngles )
+				vector fv = expect vector (this.ship.GetForwardVector())
 
 				float forwardCorrection = expect float( this.config.cockpitForwardCorrection )
 				float upwardCorrection = expect float( this.config.cockpitUpwardCorrection )
-				if (!player.IsOnGround() && player.IsCrouched()) {upwardCorrection = upwardCorrection + 12} //when entering in the air and is crouched it needs an offset dk why
-
-				player.SetOrigin( shipOrigin + af * forwardCorrection   +  <0,0,upwardCorrection> )
+				player.SetOrigin( shipOrigin + (fv * forwardCorrection)   +  (au * upwardCorrection) )
 				player.SetAngles( shipAngles )
 
-
+				//only give driver control
 				AddButtonPressedPlayerInputCallback( player, IN_JUMP , OnJumpInput ) // starting / landing
 
 				AddButtonPressedPlayerInputCallback( player, IN_ZOOM , OnFreeViewPressed ) // freeview start
@@ -138,11 +139,6 @@ void function SpaceShipClassesInit()
 				AddButtonPressedPlayerInputCallback( player, IN_BACK, OnMoveSlowPressed ) // move slow start
 				AddButtonReleasedPlayerInputCallback( player, IN_BACK, OnMoveSlowReleased ) // move slow end
 
-
-
-
-
-				print("driver embarked")
 			} else if (this.embarkedplayers["shooter"] == null && this.config.dualseat == true) {
 				this.embarkedplayers["shooter"] <- player
 
@@ -154,8 +150,6 @@ void function SpaceShipClassesInit()
 
 				player.SetOrigin( shipOrigin + af * forwardCorrection   +  <0,0,upwardCorrection> )
 				player.SetAngles( shipAngles )
-
-				print("shooter embarked")
 			}
 
 			AddButtonPressedPlayerInputCallback( player, IN_DUCK , OnExitUsed ) // exiting
@@ -164,7 +158,7 @@ void function SpaceShipClassesInit()
 			player.DisableWeaponViewModel()
 			player.SetParent( this.mover )
 
-			player.ForceStand()
+
 
 
 			//AddButtonPressedPlayerInputCallback( player, IN_ATTACK, OnAttackPressed ) // ship attack
@@ -205,11 +199,12 @@ void function SpaceShipClassesInit()
 
 			player.ClearParent()
 			player.UnforceStand()
+			player.UnforceCrouch()
 			player.EnableWeaponViewModel()
 
 			if( this.engineOn && IsValid( player ) && expect bool(shouldeject)) { //ejection
 				if (PlayerPosInSolid(player, player.GetOrigin())) {
-						player.SetOrigin(FindNearestSafeDisembarkPos(player,player.GetOrigin(),1)+(player.GetForwardVector()*-200)) //slight offset back so the player doesnt just crash into the wall when vel is added
+						player.SetOrigin(FindNearestSafeDisembarkPos(player,player.GetOrigin(),1)+(player.GetForwardVector()*-200)+<0,0,100>) //slight offset back so the player doesnt just crash into the wall when vel is added
 
 						if (PlayerPosInSolid(player, player.GetOrigin())) {
 							player.SetOrigin(FindNearestSafeDisembarkPos(player,player.GetOrigin(),1)) //if the offsett messed things up just tp again
@@ -393,10 +388,10 @@ void function SpaceShipClassesInit()
 					}
 
 					config.model <- $"models/vehicle/goblin_dropship/goblin_dropship_hero.mdl"
-					config.cockpitForwardCorrection <- 310.0
-					config.cockpitUpwardCorrection <- -60.0
-					config.cockpitForwardCorrectionShooter <- 250.0
-					config.cockpitUpwardCorrectionShooter <- -30.0
+					config.cockpitForwardCorrection <-  250.0
+					config.cockpitUpwardCorrection <-  -30.0
+					config.cockpitForwardCorrectionShooter <- 310.0
+					config.cockpitUpwardCorrectionShooter <- -60.0
 					config.explosions <- [ FX_MEGA_TURRECT_IMPACT_EXPLOSION ]
 					config.health <- 800
 					config.moveTime <- 0.7
@@ -487,15 +482,17 @@ void function OnShipDamaged( entity ship, var damageInfo )
 	float newHealth = ship.GetHealth() - damageAmount
 	ship.SetHealth( newHealth )
 
+	if (newHealth < 150) {
+		playshipinfosound("diag_gs_titanLegion_prime_briefCriticalDamage", ship)
+	}
+
+
 	if( newHealth <= 0 )
 	{
 		spaceships[ship].Explode()
 	}
 
 }
-
-
-
 
 
 /////////////////////////////////////Input-Callbacks//////////////////////////////////////////////////
@@ -506,7 +503,6 @@ var function OnShipUsed( var prop, var player )
 	var spaceship = spaceships[prop]
 
 	if (spaceship.embarkedplayers["driver"] != player && spaceship.embarkedplayers["shooter"] != player) {
-		//spaceship.ship.SetOwner( player )
 		spaceship.Embark( player )
 	}
 
@@ -662,5 +658,23 @@ bool function PlayerPosInSolid( entity player, vector targetPos ) //checks if a 
         return true
 
     return false
+
+}
+
+void function playshipinfosound(string soundid , entity ship) {
+	local alreadyplayedsound = false
+	var spaceship = spaceships[ship]
+
+	foreach (sound in spaceship.soundsplayed) {
+		if (sound == soundid) {alreadyplayedsound = true}
+	}
+
+	if (alreadyplayedsound ==false) {
+		if (spaceship.embarkedplayers["driver"]) { //only play the sound if there is a driver present
+			EmitSoundAtPosition( spaceship.embarkedplayers["driver"].GetTeam(), ship.GetOrigin() ,"diag_gs_titanLegion_prime_briefCriticalDamage")
+		}
+	}
+
+	spaceship.soundsplayed.append("diag_gs_titanLegion_prime_briefCriticalDamage")
 
 }
