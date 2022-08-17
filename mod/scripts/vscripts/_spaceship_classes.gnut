@@ -108,13 +108,14 @@ void function SpaceShipClassesInit()
 		function Embark( /* CPlayer */ var player ) // void
 		{
 			expect entity( player )
-			//this.ship.SetOwner( player )
+
 			player.spaceship = this
 
 			vector shipAngles = expect vector( this.ship.EyeAngles() )
 			vector shipOrigin = expect vector( this.ship.GetOrigin() )
 			player.SetAngles(<0,shipAngles.y,shipAngles.z>)
 
+			player.TouchGround()
 			player.ForceStand()
 
 			if (this.embarkedplayers["driver"] == null) {
@@ -152,6 +153,8 @@ void function SpaceShipClassesInit()
 				player.SetAngles( shipAngles )
 			}
 
+			playshipinfosound ("HUD_Boost_Card_Radar_Jammer_RedTextBeep_1P",expect entity (this.ship),true)
+
 			AddButtonPressedPlayerInputCallback( player, IN_DUCK , OnExitUsed ) // exiting
 			AddButtonPressedPlayerInputCallback( player, IN_DUCKTOGGLE , OnExitUsed ) // exiting alt button
 
@@ -177,7 +180,7 @@ void function SpaceShipClassesInit()
 
 			AddDeathCallback( "player", OnPilotDeath )
 
-			this.ship.Code_SetTeam( player.GetTeam() )
+			//this.ship.Code_SetTeam( player.GetTeam() )
 		}
 
 		function Disembark(shouldeject , playerent) /* void */
@@ -199,7 +202,6 @@ void function SpaceShipClassesInit()
 
 			player.ClearParent()
 			player.UnforceStand()
-			player.UnforceCrouch()
 			player.EnableWeaponViewModel()
 
 			if( this.engineOn && IsValid( player ) && expect bool(shouldeject)) { //ejection
@@ -210,6 +212,7 @@ void function SpaceShipClassesInit()
 							player.SetOrigin(FindNearestSafeDisembarkPos(player,player.GetOrigin(),1)) //if the offsett messed things up just tp again
 						}
 				}
+
 				player.SetVelocity( player.GetVelocity() + <0,0,1000> )
 			}
 
@@ -388,7 +391,7 @@ void function SpaceShipClassesInit()
 					}
 
 					config.model <- $"models/vehicle/goblin_dropship/goblin_dropship_hero.mdl"
-					config.cockpitForwardCorrection <-  250.0
+					config.cockpitForwardCorrection <-  260.0
 					config.cockpitUpwardCorrection <-  -30.0
 					config.cockpitForwardCorrectionShooter <- 310.0
 					config.cockpitUpwardCorrectionShooter <- -60.0
@@ -482,8 +485,8 @@ void function OnShipDamaged( entity ship, var damageInfo )
 	float newHealth = ship.GetHealth() - damageAmount
 	ship.SetHealth( newHealth )
 
-	if (newHealth < 150) {
-		playshipinfosound("diag_gs_titanLegion_prime_briefCriticalDamage", ship)
+	if (newHealth < (ship.GetMaxHealth()/2)) {
+		playshipinfosound("diag_gs_titanLegion_prime_briefCriticalDamage", ship , false)
 	}
 
 
@@ -661,7 +664,7 @@ bool function PlayerPosInSolid( entity player, vector targetPos ) //checks if a 
 
 }
 
-void function playshipinfosound(string soundid , entity ship) {
+void function playshipinfosound(string soundid , entity ship , bool shouldrepeat) {
 	local alreadyplayedsound = false
 	var spaceship = spaceships[ship]
 
@@ -671,10 +674,12 @@ void function playshipinfosound(string soundid , entity ship) {
 
 	if (alreadyplayedsound ==false) {
 		if (spaceship.embarkedplayers["driver"]) { //only play the sound if there is a driver present
-			EmitSoundAtPosition( spaceship.embarkedplayers["driver"].GetTeam(), ship.GetOrigin() ,"diag_gs_titanLegion_prime_briefCriticalDamage")
+			EmitSoundAtPosition( spaceship.embarkedplayers["driver"].GetTeam(), ship.GetOrigin() ,soundid)
 		}
 	}
+	if (shouldrepeat == false) {spaceship.soundsplayed.append(soundid)}
 
-	spaceship.soundsplayed.append("diag_gs_titanLegion_prime_briefCriticalDamage")
 
 }
+
+//roll with a/d

@@ -30,6 +30,8 @@ bool function SpawnShipForPlayer( entity player, array<string> args )
 }
 
 bool function testfunc (entity player, array<string> args ) {
+	EmitSoundAtPosition( player.GetTeam(), player.GetOrigin() ,"titan_eject_xbutton")
+	EmitSoundAtPosition( player.GetTeam(), player.GetOrigin() ,"HUD_Boost_Card_Radar_Jammer_RedTextBeep_1P")
 
 	return true
 }
