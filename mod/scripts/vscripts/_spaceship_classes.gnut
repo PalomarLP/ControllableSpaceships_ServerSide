@@ -143,17 +143,17 @@ void function SpaceShipClassesInit()
 			} else if (this.embarkedplayers["shooter"] == null && this.config.dualseat == true) {
 				this.embarkedplayers["shooter"] <- player
 
-				vector af = AnglesToForward( shipAngles )
+				vector au = AnglesToUp( shipAngles )
+				vector fv = expect vector (this.ship.GetForwardVector())
 
-				float forwardCorrection = expect float( this.config.cockpitForwardCorrectionShooter)
+				float forwardCorrection = expect float( this.config.cockpitForwardCorrectionShooter )
 				float upwardCorrection = expect float( this.config.cockpitUpwardCorrectionShooter )
-				if (!player.IsOnGround() && player.IsCrouched()) {upwardCorrection = upwardCorrection + 12} //when entering in the air and is crouched it needs an offset dk why
-
-				player.SetOrigin( shipOrigin + af * forwardCorrection   +  <0,0,upwardCorrection> )
+				player.SetOrigin( shipOrigin + (fv * forwardCorrection)   +  (au * upwardCorrection) )
 				player.SetAngles( shipAngles )
 			}
 
-			playshipinfosound ("HUD_Boost_Card_Radar_Jammer_RedTextBeep_1P",expect entity (this.ship),true)
+			this.PlayShipInfoSound("HUD_Boost_Card_Radar_Jammer_RedTextBeep_1P",true)
+			this.PlayShipInfoSound("titan_eject_xbutton",true)
 
 			AddButtonPressedPlayerInputCallback( player, IN_DUCK , OnExitUsed ) // exiting
 			AddButtonPressedPlayerInputCallback( player, IN_DUCKTOGGLE , OnExitUsed ) // exiting alt button
@@ -180,7 +180,7 @@ void function SpaceShipClassesInit()
 
 			AddDeathCallback( "player", OnPilotDeath )
 
-			//this.ship.Code_SetTeam( player.GetTeam() )
+			this.ship.Code_SetTeam( player.GetTeam() )
 		}
 
 		function Disembark(shouldeject , playerent) /* void */
@@ -379,6 +379,23 @@ void function SpaceShipClassesInit()
 			} catch(ex) {this.inManeuver = false} //ship might get destroyed in the maneuver
 		}
 
+		function PlayShipInfoSound(string soundid , bool shouldrepeat) {
+			local alreadyplayedsound = false
+
+			foreach (sound in this.soundsplayed) {
+				if (sound == soundid) {alreadyplayedsound = true}
+			}
+
+			if (alreadyplayedsound ==false) {
+				if (this.embarkedplayers["driver"]) { //only play the sound if there is a driver present
+					EmitSoundAtPosition( this.embarkedplayers["driver"].GetTeam(), this.ship.GetOrigin() ,soundid)
+				}
+			}
+			if (shouldrepeat == false) {this.soundsplayed.append(soundid)}
+
+
+		}
+
 		function ConfigFromType( string type )
 		{
 			var config = {} // fml. Can't use structs and tables because untyped is shit
@@ -486,7 +503,7 @@ void function OnShipDamaged( entity ship, var damageInfo )
 	ship.SetHealth( newHealth )
 
 	if (newHealth < (ship.GetMaxHealth()/2)) {
-		playshipinfosound("diag_gs_titanLegion_prime_briefCriticalDamage", ship , false)
+		spaceships[ship].PlayShipInfoSound("diag_gs_titanLegion_prime_briefCriticalDamage", false)
 	}
 
 
@@ -664,22 +681,5 @@ bool function PlayerPosInSolid( entity player, vector targetPos ) //checks if a 
 
 }
 
-void function playshipinfosound(string soundid , entity ship , bool shouldrepeat) {
-	local alreadyplayedsound = false
-	var spaceship = spaceships[ship]
-
-	foreach (sound in spaceship.soundsplayed) {
-		if (sound == soundid) {alreadyplayedsound = true}
-	}
-
-	if (alreadyplayedsound ==false) {
-		if (spaceship.embarkedplayers["driver"]) { //only play the sound if there is a driver present
-			EmitSoundAtPosition( spaceship.embarkedplayers["driver"].GetTeam(), ship.GetOrigin() ,soundid)
-		}
-	}
-	if (shouldrepeat == false) {spaceship.soundsplayed.append(soundid)}
-
-
-}
 
 //roll with a/d
