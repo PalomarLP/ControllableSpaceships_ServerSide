@@ -46,6 +46,7 @@ void function SpaceShipClassesInit()
 		moveSlow = false // boolean		| move slowly, still very janky
 		startManeuverTime = 1.5
 		landingManeuverTime = 1.5
+		embarkedplayers = {};
 
 		// ships can't be damaged by a ship of the same team. Also applies to TEAM_UNSASSIGNED
 		constructor( string type , var origin = <0,0,0>, var angles = <0,0,0>, team = TEAM_UNASSIGNED )
@@ -54,6 +55,8 @@ void function SpaceShipClassesInit()
 			expect vector( angles )
 
 			this.config = this.ConfigFromType( type )
+			this.embarkedplayers["driver"] <- null
+			this.embarkedplayers["shooter"] <- null
 
 			// create the ship prop
 			this.ship = CreateEntity( "prop_script" )
@@ -104,44 +107,78 @@ void function SpaceShipClassesInit()
 		function Embark( /* CPlayer */ var player ) // void
 		{
 			expect entity( player )
-			this.ship.SetOwner( player )
+			//this.ship.SetOwner( player )
 			player.spaceship = this
 
-			player.DisableWeaponViewModel()
 
 			vector shipAngles = expect vector( this.ship.EyeAngles() )
 			vector shipOrigin = expect vector( this.ship.GetOrigin() )
 			player.SetAngles(<0,shipAngles.y,shipAngles.z>)
 
+			if (this.embarkedplayers["driver"] == null) {
+				this.embarkedplayers["driver"] <- player
 
-			vector af = AnglesToForward( shipAngles )
+				vector af = AnglesToForward( shipAngles )
 
-			float forwardCorrection = expect float( this.config.cockpitForwardCorrection )
-			float upwardCorrection = expect float( this.config.cockpitUpwardCorrection )
-			if (!player.IsOnGround() && player.IsCrouched()) {upwardCorrection = upwardCorrection + 12} //when entering in the air and is crouched it needs an offset dk why
+				float forwardCorrection = expect float( this.config.cockpitForwardCorrection )
+				float upwardCorrection = expect float( this.config.cockpitUpwardCorrection )
+				if (!player.IsOnGround() && player.IsCrouched()) {upwardCorrection = upwardCorrection + 12} //when entering in the air and is crouched it needs an offset dk why
 
-			player.SetOrigin( shipOrigin + af * forwardCorrection   +  <0,0,upwardCorrection> )
-			player.SetAngles( shipAngles )
+				player.SetOrigin( shipOrigin + af * forwardCorrection   +  <0,0,upwardCorrection> )
+				player.SetAngles( shipAngles )
 
+
+				AddButtonPressedPlayerInputCallback( player, IN_JUMP , OnJumpInput ) // starting / landing
+
+				AddButtonPressedPlayerInputCallback( player, IN_ZOOM , OnFreeViewPressed ) // freeview start
+				AddButtonReleasedPlayerInputCallback( player, IN_ZOOM, OnFreeViewReleased ) // freeview end
+				AddButtonPressedPlayerInputCallback( player, IN_ZOOM_TOGGLE , OnFreeViewPressed ) // freeview start alt button
+				AddButtonReleasedPlayerInputCallback( player, IN_ZOOM_TOGGLE, OnFreeViewReleased ) // freeview end alt button
+
+				AddButtonPressedPlayerInputCallback( player, IN_BACK, OnMoveSlowPressed ) // move slow start
+				AddButtonReleasedPlayerInputCallback( player, IN_BACK, OnMoveSlowReleased ) // move slow end
+
+
+
+
+
+				print("driver embarked")
+			} else if (this.embarkedplayers["shooter"] == null && this.config.dualseat == true) {
+				this.embarkedplayers["shooter"] <- player
+
+				vector af = AnglesToForward( shipAngles )
+
+				float forwardCorrection = expect float( this.config.cockpitForwardCorrectionShooter)
+				float upwardCorrection = expect float( this.config.cockpitUpwardCorrectionShooter )
+				if (!player.IsOnGround() && player.IsCrouched()) {upwardCorrection = upwardCorrection + 12} //when entering in the air and is crouched it needs an offset dk why
+
+				player.SetOrigin( shipOrigin + af * forwardCorrection   +  <0,0,upwardCorrection> )
+				player.SetAngles( shipAngles )
+
+				print("shooter embarked")
+			}
+
+			AddButtonPressedPlayerInputCallback( player, IN_DUCK , OnExitUsed ) // exiting
+			AddButtonPressedPlayerInputCallback( player, IN_DUCKTOGGLE , OnExitUsed ) // exiting alt button
+
+			player.DisableWeaponViewModel()
 			player.SetParent( this.mover )
 
 			player.ForceStand()
 
-			AddButtonPressedPlayerInputCallback( player, IN_JUMP , OnJumpInput ) // starting / landing
-			AddButtonPressedPlayerInputCallback( player, IN_DUCK , OnExitUsed ) // exiting
 
-			AddButtonPressedPlayerInputCallback( player, IN_ZOOM , OnFreeViewPressed ) // freeview start
-			AddButtonReleasedPlayerInputCallback( player, IN_ZOOM, OnFreeViewReleased ) // freeview end
-			AddButtonPressedPlayerInputCallback( player, IN_ZOOM_TOGGLE , OnFreeViewPressed ) // freeview start
-			AddButtonReleasedPlayerInputCallback( player, IN_ZOOM_TOGGLE, OnFreeViewReleased ) // freeview end
+			//AddButtonPressedPlayerInputCallback( player, IN_ATTACK, OnAttackPressed ) // ship attack
+			//AddButtonReleasedPlayerInputCallback( player, IN_ATTACK, OnAttackReleased ) // ship attack
 
-			AddButtonPressedPlayerInputCallback( player, IN_BACK, OnMoveSlowPressed ) // move slow start
-			AddButtonReleasedPlayerInputCallback( player, IN_BACK, OnMoveSlowReleased ) // move slow end
 
-			AddButtonPressedPlayerInputCallback( player, IN_ATTACK, OnAttackPressed ) // ship attack
-			AddButtonReleasedPlayerInputCallback( player, IN_ATTACK, OnAttackReleased ) // ship attack
+			if (this.config.dualseat == true) {
+				if (this.embarkedplayers["driver"] != null && this.embarkedplayers["shooter"] != null) {
+					this.SetShipOccupied()
+				}
+			} else {
+				this.SetShipOccupied()
+			}
 
-			this.SetShipOccupied()
 
 
 			AddDeathCallback( "player", OnPilotDeath )
@@ -149,21 +186,28 @@ void function SpaceShipClassesInit()
 			this.ship.Code_SetTeam( player.GetTeam() )
 		}
 
-		function Disembark(shouldeject) /* void */
+		function Disembark(shouldeject , playerent) /* void */
 		{
-			if(!IsValid(this.ship.GetOwner())) {
+			if(!IsValid(playerent)) {
 				return
 			}
 
 
-			entity player = expect entity( this.ship.GetOwner() )
+
+			entity player = expect entity(playerent)
 			player.spaceship = null
+
+			foreach (key,value in this.embarkedplayers) {
+				if (player == value) {
+					this.embarkedplayers[key] = null
+				}
+			}
 
 			player.ClearParent()
 			player.UnforceStand()
-			this.ship.GetOwner().EnableWeaponViewModel()
+			player.EnableWeaponViewModel()
 
-			if( this.engineOn && IsValid( player ) && expect bool(shouldeject)) {
+			if( this.engineOn && IsValid( player ) && expect bool(shouldeject)) { //ejection
 				if (PlayerPosInSolid(player, player.GetOrigin())) {
 						player.SetOrigin(FindNearestSafeDisembarkPos(player,player.GetOrigin(),1)+(player.GetForwardVector()*-200)) //slight offset back so the player doesnt just crash into the wall when vel is added
 
@@ -174,8 +218,12 @@ void function SpaceShipClassesInit()
 				player.SetVelocity( player.GetVelocity() + <0,0,1000> )
 			}
 
-			this.ship.SetOwner( null )
-			this.SetShipFree()
+			foreach (key,value in this.embarkedplayers) {
+				if (value == null) {
+					this.SetShipFree()
+				}
+			}
+
 
 
 			DeregisterAllButtons( player )
@@ -211,13 +259,13 @@ void function SpaceShipClassesInit()
 		{
 			// entity prop
 			while( IsValid( expect entity( this.ship ) ) ) {
-				if ( !this.ship || !this.mover || !this.ship.GetOwner() || !this.engineOn || this.freeView )
+				if ( !this.ship || !this.mover || !this.embarkedplayers["driver"] || !this.engineOn || this.freeView )
 				{
 					WaitFrame()
 					continue
 				} else if ( IsValid( expect entity( this.ship ) ) )
 				{
-					vector v = expect vector( this.ship.GetOwner().EyeAngles() )
+					vector v = expect vector( this.embarkedplayers["driver"].EyeAngles() )
 					v = <v.x,v.y,0>
 
 					// move for 0.5 seconds to account for higher ping maybe?
@@ -290,11 +338,14 @@ void function SpaceShipClassesInit()
 			this.ship.ClearParent()
 			EmitSoundAtPosition( TEAM_UNASSIGNED, this.ship.GetOrigin(),"titan_death_explode")
 
-			if( this.ship.GetOwner() )
-			{
-			    this.ship.GetOwner().ClearParent()
-				this.Disembark(true)
+			foreach (key,value in this.embarkedplayers) {
+				if( value )
+				{
+					value.ClearParent()
+					this.Disembark(true , value) //need to make it so that both eject
+				}
 			}
+
 
 			this.ship.Destroy()
 
@@ -344,6 +395,8 @@ void function SpaceShipClassesInit()
 					config.model <- $"models/vehicle/goblin_dropship/goblin_dropship_hero.mdl"
 					config.cockpitForwardCorrection <- 310.0
 					config.cockpitUpwardCorrection <- -60.0
+					config.cockpitForwardCorrectionShooter <- 250.0
+					config.cockpitUpwardCorrectionShooter <- -30.0
 					config.explosions <- [ FX_MEGA_TURRECT_IMPACT_EXPLOSION ]
 					config.health <- 800
 					config.moveTime <- 0.7
@@ -351,6 +404,7 @@ void function SpaceShipClassesInit()
 					config.shipwidth <- 250
 					config.shipheight <- 100
 					config.startheight <- 650
+					config.dualseat <- true
 				break
 				case "crow":
 					table barrel = {
@@ -369,6 +423,7 @@ void function SpaceShipClassesInit()
 					config.shipwidth <- 250
 					config.shipheight <- 100
 					config.startheight <- 650
+					config.dualseat <- false
 				break
 				case "straton":
 				default:
@@ -403,6 +458,7 @@ void function SpaceShipClassesInit()
 					config.shipwidth <- 100
 					config.shipheight <- 45
 					config.startheight <- 400
+					config.dualseat <- false
 				break
 			}
 			return config
@@ -434,7 +490,6 @@ void function OnShipDamaged( entity ship, var damageInfo )
 	if( newHealth <= 0 )
 	{
 		spaceships[ship].Explode()
-		print("dead")
 	}
 
 }
@@ -450,8 +505,11 @@ var function OnShipUsed( var prop, var player )
 	expect entity( prop )
 	var spaceship = spaceships[prop]
 
-	spaceship.ship.SetOwner( player )
-	spaceship.Embark( player )
+	if (spaceship.embarkedplayers["driver"] != player && spaceship.embarkedplayers["shooter"] != player) {
+		//spaceship.ship.SetOwner( player )
+		spaceship.Embark( player )
+	}
+
 }
 
 void function OnExitUsed( entity player )
@@ -461,7 +519,7 @@ void function OnExitUsed( entity player )
 
 	var spaceship = player.spaceship
 	if ( spaceship )
-		player.spaceship.Disembark(true)
+		player.spaceship.Disembark(true , player)
 }
 
 void function OnJumpInput( entity player )
@@ -518,7 +576,7 @@ void function OnAttackReleased( entity player )
 void function OnPilotDeath( entity player, var damageInfo )
 {
 	try{
-	player.spaceship.Disembark(false)
+	player.spaceship.Disembark(false , player)
 	}catch(ex){}
 }
 
