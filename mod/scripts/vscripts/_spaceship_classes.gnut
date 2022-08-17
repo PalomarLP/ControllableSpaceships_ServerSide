@@ -757,10 +757,6 @@ bool function PlayerPosInSolid( entity player, vector targetPos ) //checks if a 
 
 }
 
-
-//roll with a/d
-//mp_weapon_hemlok_smg volt
-
 void function CreateWeaponTracer( vector startPos, vector endPos, float lifeDuration, asset tracerAsset = $"P_wpn_hand_laser_beam_BC" )
 {
 	entity cpEnd = CreateEntity( "info_placement_helper" )
@@ -784,3 +780,9 @@ void function CreateWeaponTracer( vector startPos, vector endPos, float lifeDura
 	cpEnd.Kill_Deprecated_UseDestroyInstead( lifeDuration )
 
 }
+
+
+//roll with a/d
+//make the other 2 weapon systems
+//maybe remove sunflairs , theyre really annoying when flying
+//make beter speed control

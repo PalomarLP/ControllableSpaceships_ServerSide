@@ -427,65 +427,65 @@ function IsVortexing( entity ent )
 #if SERVER
 function Vortex_HandleElectricDamage( entity ent, entity attacker, damage, entity weapon ) //////////ahhhhhhhhhhhh
 {
-	/*
-	if ( !IsValid( ent ) )
-		return damage
+	try {
+		if ( !IsValid( ent ) )
+			return damage
 
-	if ( !ent.IsTitan() )
-		return damage
+		if ( !ent.IsTitan() )
+			return damage
 
-	if ( !ent.IsPlayer() && !ent.IsNPC() )
-		return damage
+		if ( !ent.IsPlayer() && !ent.IsNPC() )
+			return damage
 
-	if ( !IsVortexing( ent ) )
-		return damage
+		if ( !IsVortexing( ent ) )
+			return damage
 
-	entity vortexWeapon = ent.GetActiveWeapon()
-	if ( !IsValid( vortexWeapon ) )
-		return damage
+		entity vortexWeapon = ent.GetActiveWeapon()
+		if ( !IsValid( vortexWeapon ) )
+			return damage
 
-	entity vortexSphere = vortexWeapon.GetWeaponUtilityEntity()
-	if ( !IsValid( vortexSphere ) )
-		return damage
+		entity vortexSphere = vortexWeapon.GetWeaponUtilityEntity()
+		if ( !IsValid( vortexSphere ) )
+			return damage
 
-	if ( !IsValid( vortexWeapon ) || !IsValid( vortexSphere ) )
-		return damage
+		if ( !IsValid( vortexWeapon ) || !IsValid( vortexSphere ) )
+			return damage
 
-	// vortex FOV check
-	//printt( "sphere FOV:", vortexSphere.kv.bullet_fov )
-	local sphereFOV = vortexSphere.kv.bullet_fov.tointeger()
-	entity attackerWeapon = attacker.GetActiveWeapon()
-	int attachIdx = attackerWeapon.LookupAttachment( "muzzle_flash" )
-	vector beamOrg = attackerWeapon.GetAttachmentOrigin( attachIdx )
-	vector firingDir = beamOrg - vortexSphere.GetOrigin()
-	firingDir = Normalize( firingDir )
-	vector vortexDir = AnglesToForward( vortexSphere.GetAngles() )
+		// vortex FOV check
+		//printt( "sphere FOV:", vortexSphere.kv.bullet_fov )
+		local sphereFOV = vortexSphere.kv.bullet_fov.tointeger()
+		entity attackerWeapon = attacker.GetActiveWeapon()
+		int attachIdx = attackerWeapon.LookupAttachment( "muzzle_flash" )
+		vector beamOrg = attackerWeapon.GetAttachmentOrigin( attachIdx )
+		vector firingDir = beamOrg - vortexSphere.GetOrigin()
+		firingDir = Normalize( firingDir )
+		vector vortexDir = AnglesToForward( vortexSphere.GetAngles() )
 
-	float dot = DotProduct( vortexDir, firingDir )
+		float dot = DotProduct( vortexDir, firingDir )
 
-	float degCos = DEG_COS_60
-	if ( sphereFOV != 120 )
-		deg_cos( sphereFOV * 0.5 )
+		float degCos = DEG_COS_60
+		if ( sphereFOV != 120 )
+			deg_cos( sphereFOV * 0.5 )
 
-	// not in the vortex cone
-	if ( dot < degCos )
-		return damage
+		// not in the vortex cone
+		if ( dot < degCos )
+			return damage
 
-	if ( "fxElectricalExplosion" in vortexWeapon.s )
-	{
-			entity fxRef = CreateEntity( "info_particle_system" )
-			fxRef.SetValueForEffectNameKey( expect asset( vortexWeapon.s.fxElectricalExplosion ) )
-			fxRef.kv.start_active = 1
-			fxRef.SetStopType( "destroyImmediately" )
-			//fxRef.kv.VisibilityFlags = ENTITY_VISIBLE_TO_OWNER  // HACK this turns on owner only visibility. Uncomment when we hook up dedicated 3P effects
-			fxRef.SetOwner( ent )
-			fxRef.SetOrigin( vortexSphere.GetOrigin() )
-			fxRef.SetParent( ent )
+		if ( "fxElectricalExplosion" in vortexWeapon.s )
+		{
+				entity fxRef = CreateEntity( "info_particle_system" )
+				fxRef.SetValueForEffectNameKey( expect asset( vortexWeapon.s.fxElectricalExplosion ) )
+				fxRef.kv.start_active = 1
+				fxRef.SetStopType( "destroyImmediately" )
+				//fxRef.kv.VisibilityFlags = ENTITY_VISIBLE_TO_OWNER  // HACK this turns on owner only visibility. Uncomment when we hook up dedicated 3P effects
+				fxRef.SetOwner( ent )
+				fxRef.SetOrigin( vortexSphere.GetOrigin() )
+				fxRef.SetParent( ent )
 
-			DispatchSpawn( fxRef )
-			fxRef.Kill_Deprecated_UseDestroyInstead( 1 )
-	}
-	*/
+				DispatchSpawn( fxRef )
+				fxRef.Kill_Deprecated_UseDestroyInstead( 1 )
+		}
+	} catch(ex) {print("VORTEX AGHHH"+ex)}
 
 	return damage
 }

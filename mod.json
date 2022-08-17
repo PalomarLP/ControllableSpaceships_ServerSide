@@ -2,7 +2,7 @@
 	"Name": "Controllable Spaceships",
 	"Description": "type \"ship\" in the console to spawn a spaceship.\nPress [space] when inside of the ship to liftoff or land",
 	"Version": "0.0.1",
-	"LoadPriority": 1,
+	"LoadPriority": 3,
 	"RequiredOnClient": false,
 	"ConVars": [],
 	"Scripts": [
