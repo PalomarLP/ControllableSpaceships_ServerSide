@@ -904,8 +904,8 @@ void function CreateWeaponTracer( vector startPos, vector endPos, float lifeDura
 
 
 
-//make the other 2 weapon systems !!!
 //maybe remove sunflairs , theyre really annoying when flying
 //make beter speed control
 //roll with a/d
-//make freeview for the gunner be underneath the ship to aim
+//make gunnerview less janky and add some sort of indicators
+//maybe add some instructions idk
