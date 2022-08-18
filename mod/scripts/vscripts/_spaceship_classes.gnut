@@ -242,6 +242,9 @@ void function SpaceShipClassesInit()
 				}
 			}
 
+			player.SetTakeDamageType( DAMAGE_YES )
+			player.kv.VisibilityFlags = ENTITY_VISIBLE_TO_EVERYONE
+
 
 
 			DeregisterAllButtons( player )
