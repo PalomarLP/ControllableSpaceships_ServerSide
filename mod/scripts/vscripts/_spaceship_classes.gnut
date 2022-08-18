@@ -27,6 +27,7 @@ void function SpaceShipClassesInit()
 	PrecacheModel($"models/vehicle/straton/straton_imc_gunship_01.mdl")
 	PrecacheModel($"models/vehicle/crow_dropship/crow_dropship_hero.mdl")
 	PrecacheModel($"models/vehicle/goblin_dropship/goblin_dropship_hero.mdl")
+	PrecacheModel( $"models/containers/pelican_case_large.mdl")
 
 
 	//Precache fx
@@ -53,6 +54,7 @@ void function SpaceShipClassesInit()
 		readytofire = true //bool		| tracks weapon cooldowns in StartWeaponSystemCooldown() and ShootWeaponSystem()
 		weaponsactive = false //bool 	| wether or not the player is currently holding fire
 		gunnerView = false //bool       | determins if gunnerview should be enabled
+		occupationent = null //entity 	| used to track if a ship is already somewhere(NOT IF THE SHIP IS CRASHING , that uses config values)
 
 		// ships can't be damaged by a ship of the same team. Also applies to TEAM_UNSASSIGNED
 		constructor( string type , var origin = <0,0,0>, var angles = <0,0,0>, team = TEAM_UNASSIGNED )
@@ -63,6 +65,13 @@ void function SpaceShipClassesInit()
 			this.config = this.ConfigFromType( type )
 			this.embarkedplayers["driver"] <- null
 			this.embarkedplayers["shooter"] <- null
+
+			//createpropforcollisiondetection
+			this.occupationent = CreatePropDynamic($"models/containers/pelican_case_large.mdl",<0,0,0>,<0, 0, 0>,SOLID_VPHYSICS)
+			this.occupationent.SetOrigin( origin + < 0, 0, expect float( this.config.groundToFeet ) > )
+			this.occupationent.Hide()
+
+
 
 			// create the ship prop
 			this.ship = CreateEntity( "prop_script" )
@@ -302,6 +311,7 @@ void function SpaceShipClassesInit()
 
 		function StartingSequence() /* void */
 		{
+			try {this.occupationent.Destroy()}catch(ex0)
 			try {
 				if ( this.inManeuver )
 					return
@@ -356,6 +366,7 @@ void function SpaceShipClassesInit()
 		}
 
 		function Explode() {
+			try {this.occupationent.Destroy()}catch(ex0)
 			this.ship.ClearParent()
 			EmitSoundAtPosition( TEAM_UNASSIGNED, this.ship.GetOrigin(),"titan_death_explode")
 
