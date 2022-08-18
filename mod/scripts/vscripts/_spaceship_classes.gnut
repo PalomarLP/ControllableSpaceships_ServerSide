@@ -361,7 +361,7 @@ void function SpaceShipClassesInit()
 		function ShootWeaponSystem() {
 			if (this.engineOn && this.readytofire == true) {
 				this.readytofire = false
-				entity guy = CreateMarvin(expect entity (this.embarkedplayers["driver"]).GetTeam(),expect vector(this.ship.GetOrigin()),expect vector (this.ship.GetAngles()))
+				entity guy = CreateMarvin(expect entity (this.embarkedplayers["driver"]).GetTeam(),expect vector(this.ship.GetOrigin() + this.ship.GetForwardVector()*600),expect vector (this.ship.GetAngles()))
 				DispatchSpawn( guy )
 				guy.Freeze()
 				guy.Hide()
@@ -383,18 +383,14 @@ void function SpaceShipClassesInit()
 
 
 							if (i == 1) {
-								print("barrel1")
 								origin = expect vector (this.ship.GetOrigin() + (af * this.config.barrel1cannonPosForward) + (au * this.config.barrel1cannonPosUp) + (ar * this.config.barrel1cannonPosRight))
 							}
 							if (i == 2) {
-								print("barrel2")
 								origin = expect vector (this.ship.GetOrigin() + (af * this.config.barrel2cannonPosForward) + (au * this.config.barrel2cannonPosUp) + (ar * this.config.barrel2cannonPosRight))}
 							if (i == 3) {
-								print("barrel3")
 								origin = expect vector (this.ship.GetOrigin() + (af * this.config.barrel3cannonPosForward) + (au * this.config.barrel3cannonPosUp) + (ar * this.config.barrel3cannonPosRight))
 							}
 							if (i == 4) {
-								print("barrel4")
 								origin = expect vector (this.ship.GetOrigin() + (af * this.config.barrel4cannonPosForward) + (au * this.config.barrel4cannonPosUp) + (ar * this.config.barrel4cannonPosRight))
 							}
 
@@ -407,13 +403,40 @@ void function SpaceShipClassesInit()
 							vector traceEnd = expect vector(this.ship.GetOrigin() + shootvector * 56756) //max length
 							TraceResults r = TraceLine( origin, traceEnd, [], TRACE_MASK_SHOT, TRACE_COLLISION_GROUP_NONE )
 							CreateWeaponTracer(origin , r.endPos ,0.05)
+
 						}catch(ex) {}
 						wait 0.05
 					}
+					thread this.StartWeaponSystemCooldown()
 					guy.Destroy()
 					weapon.Destroy()
+
+
+				}
+
+				if (this.config.weaponsystem == "HeavyRockets") {
+					guy.GiveOffhandWeapon("mp_titanweapon_dumbfire_rockets", OFFHAND_MELEE)
+					entity weapon = guy.GetOffhandWeapons()[0]
+
+					for (int i=1;i<4;i++){
+						try{
+							vector shootvector = <this.ship.GetForwardVector().x,this.ship.GetForwardVector().y,this.ship.GetForwardVector().z>
+
+							vector rocketorigin = expect vector (this.ship.GetOrigin()
+							+ this.ship.GetForwardVector() * expect float(this.config.barrel1cannonPosForward)
+							+ this.ship.GetRightVector() * expect float (this.config.barrel1cannonPosRight)
+							+ AnglesToUp(expect vector(this.ship.GetAngles())) * expect float (this.config.barrel1cannonPosUp))
+
+							weapon.FireWeaponBolt(rocketorigin,shootvector,6000,damageTypes.largeCaliberExp ,damageTypes.largeCaliberExp ,false ,0 )
+							wait 0.1
+
+						} catch(ex) {}
+					}
+
 					thread this.StartWeaponSystemCooldown()
 
+					guy.Destroy()
+					weapon.Destroy()
 				}
 
 
@@ -498,11 +521,11 @@ void function SpaceShipClassesInit()
 					config.weaponsystem <- "palceholder"
 				break
 				case "crow":
-					table barrel = {
-						cannonPosForward = 300.0
-						cannonPosRight = 0.0
-						cannonPosUp = -50.0
-					}
+
+					config.barrel1cannonPosForward <- 300.0
+					config.barrel1cannonPosRight <- 0.0
+					config.barrel1cannonPosUp <- -50.0
+
 
 					config.model <- $"models/vehicle/crow_dropship/crow_dropship_hero.mdl"
 					config.cockpitForwardCorrection <- 270.0
@@ -517,7 +540,8 @@ void function SpaceShipClassesInit()
 					config.shipheight <- 100
 					config.startheight <- 650
 					config.dualseat <- false
-					config.weaponsystem  <- "palceholder"
+					config.weaponsystem  <- "HeavyRockets"
+					config.weaponcooldown <- 1
 				break
 				case "straton":
 				default:
@@ -685,7 +709,7 @@ TraceResults function TraceLandingSpot( entity shipProp )
 	vector traceStart = shipProp.GetOrigin()
 	vector traceEnd = distant - < 0, 0, SPACESHIP_MAX_LANDING_HEIGHT >
 
-	printt( TraceLine( distant, traceEnd, null, TRACE_MASK_SHOT, TRACE_COLLISION_GROUP_NONE ).endPos )
+	//printt( TraceLine( distant, traceEnd, null, TRACE_MASK_SHOT, TRACE_COLLISION_GROUP_NONE ).endPos )
 
 	return TraceLine( distant, traceEnd, null, TRACE_MASK_SHOT, TRACE_COLLISION_GROUP_NONE )
 }
@@ -705,7 +729,6 @@ vector function FindNearestSafeDisembarkPos(entity player, vector targetPos, int
 {
     if(severity >= 600)
     {
-        print("Phase error:could not find a save position for player")
        return < player.GetOrigin().x,player.GetOrigin().y,player.GetOrigin().z+1500 >
     }
 
@@ -782,7 +805,8 @@ void function CreateWeaponTracer( vector startPos, vector endPos, float lifeDura
 }
 
 
-//roll with a/d
-//make the other 2 weapon systems
+
+//make the other 2 weapon systems !!!
 //maybe remove sunflairs , theyre really annoying when flying
 //make beter speed control
+//roll with a/d
