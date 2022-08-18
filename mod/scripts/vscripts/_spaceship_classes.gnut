@@ -154,7 +154,7 @@ void function SpaceShipClassesInit()
 				player.SetOrigin( shipOrigin + (fv * forwardCorrection)   +  (au * upwardCorrection) )
 				player.SetAngles( shipAngles )
 
-				AddButtonPressedPlayerInputCallback( player, IN_ATTACK, OnAttackPressed ) // ship attack
+				AddButtonPressedPlayerInputCallback( player, IN_ATTACK, OnAttackPressed ) // always give gunner attack controls
 			}
 
 			this.PlayShipInfoSound("HUD_Boost_Card_Radar_Jammer_RedTextBeep_1P",true)
@@ -511,7 +511,7 @@ void function SpaceShipClassesInit()
 					config.cockpitForwardCorrectionShooter <- 260.0
 					config.cockpitUpwardCorrectionShooter <- -30.0
 					config.explosions <- [ FX_MEGA_TURRECT_IMPACT_EXPLOSION ]
-					config.health <- 800
+					config.health <- 2250
 					config.moveTime <- 0.7
 					config.groundToFeet <- 100.0
 					config.shipwidth <- 250
@@ -533,7 +533,7 @@ void function SpaceShipClassesInit()
 					//todo: add shooter poscoorection just in case
 					//
 					config.explosions <- [ FX_MEGA_TURRECT_IMPACT_EXPLOSION ]
-					config.health <- 500
+					config.health <- 1750
 					config.moveTime <- 1.0
 					config.groundToFeet <- 100.0
 					config.shipwidth <- 250
@@ -569,7 +569,7 @@ void function SpaceShipClassesInit()
 					//todo: add shooter poscoorection just in case
 					//
 					config.explosions <- [ FX_MEGA_TURRECT_IMPACT_EXPLOSION ]
-					config.health <- 300
+					config.health <- 1250
 					config.moveTime <- 0.6
 					config.groundToFeet <- 0.0
 					config.shipwidth <- 100
@@ -606,7 +606,7 @@ void function OnShipDamaged( entity ship, var damageInfo )
 	float newHealth = ship.GetHealth() - damageAmount
 	ship.SetHealth( newHealth )
 
-	if (newHealth < (ship.GetMaxHealth()/2)) {
+	if (newHealth < (ship.GetMaxHealth()/3)) {
 		spaceships[ship].PlayShipInfoSound("diag_gs_titanLegion_prime_briefCriticalDamage", false)
 	}
 
