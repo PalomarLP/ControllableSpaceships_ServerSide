@@ -48,9 +48,11 @@ void function SpaceShipClassesInit()
 		moveSlow = false // boolean		| move slowly, still very janky
 		startManeuverTime = 1.5 //float | how long the starting sequence takes
 		landingManeuverTime = 1.5//float| how long the landing sequence takes
-		embarkedplayers = {} //table   | tracks players who are in the ship
-		soundsplayed =[] //array       | tracks what info sounds have been played (eg "critical damge" or smth like that)
-		readytofire = true
+		embarkedplayers = {} //table    | tracks players who are in the ship
+		soundsplayed =[] //array        | tracks what info sounds have been played (eg "critical damge" or smth like that)
+		readytofire = true //bool		| tracks weapon cooldowns in StartWeaponSystemCooldown() and ShootWeaponSystem()
+		weaponsactive = false //bool 	| wether or not the player is currently holding fire
+		gunnerView = false //bool       | determins if gunnerview should be enabled
 
 		// ships can't be damaged by a ship of the same team. Also applies to TEAM_UNSASSIGNED
 		constructor( string type , var origin = <0,0,0>, var angles = <0,0,0>, team = TEAM_UNASSIGNED )
@@ -123,6 +125,7 @@ void function SpaceShipClassesInit()
 
 			if (this.embarkedplayers["driver"] == null) {
 				this.embarkedplayers["driver"] <- player
+				if(this.config.dualseat == true ){Chat_ServerPrivateMessage(player,"You embarked a ship as a driver!", false)} else {Chat_ServerPrivateMessage(player,"You embarked a ship!", false)}
 
 				vector au = AnglesToUp( shipAngles )
 				vector fv = expect vector (this.ship.GetForwardVector())
@@ -140,11 +143,14 @@ void function SpaceShipClassesInit()
 				AddButtonPressedPlayerInputCallback( player, IN_ZOOM_TOGGLE , OnFreeViewPressed ) // freeview start alt button
 				AddButtonReleasedPlayerInputCallback( player, IN_ZOOM_TOGGLE, OnFreeViewReleased ) // freeview end alt button
 
+
+
 				AddButtonPressedPlayerInputCallback( player, IN_BACK, OnMoveSlowPressed ) // move slow start
 				AddButtonReleasedPlayerInputCallback( player, IN_BACK, OnMoveSlowReleased ) // move slow end
 
 			} else if (this.embarkedplayers["shooter"] == null && this.config.dualseat == true) {
 				this.embarkedplayers["shooter"] <- player
+				Chat_ServerPrivateMessage(player,"You embarked a ship as a gunner!", false)
 
 				vector au = AnglesToUp( shipAngles )
 				vector fv = expect vector (this.ship.GetForwardVector())
@@ -154,23 +160,32 @@ void function SpaceShipClassesInit()
 				player.SetOrigin( shipOrigin + (fv * forwardCorrection)   +  (au * upwardCorrection) )
 				player.SetAngles( shipAngles )
 
+
 				AddButtonPressedPlayerInputCallback( player, IN_ATTACK, OnAttackPressed ) // always give gunner attack controls
+				AddButtonReleasedPlayerInputCallback( player, IN_ATTACK, OnAttackReleased )
+
+				AddButtonPressedPlayerInputCallback( player, IN_ZOOM , OnGunnerViewPressed )
+				AddButtonReleasedPlayerInputCallback( player, IN_ZOOM, OnGunnerViewReleased )
+				AddButtonPressedPlayerInputCallback( player, IN_ZOOM_TOGGLE ,  OnGunnerViewPressed )
+				AddButtonReleasedPlayerInputCallback( player, IN_ZOOM_TOGGLE, OnGunnerViewReleased )
 			}
 
-			this.PlayShipInfoSound("HUD_Boost_Card_Radar_Jammer_RedTextBeep_1P",true)
+			this.PlayShipInfoSound("HUD_Boost_Card_Radar_Jammer_RedTextBeep_1P",true) //beepclick sound
 			this.PlayShipInfoSound("titan_eject_xbutton",true)
 
 			AddButtonPressedPlayerInputCallback( player, IN_DUCK , OnExitUsed ) // exiting
 			AddButtonPressedPlayerInputCallback( player, IN_DUCKTOGGLE , OnExitUsed ) // exiting alt button
 
-			player.DisableWeaponViewModel()
-			player.SetParent( this.mover )
-
-
 
 			if (this.config.dualseat == false) {
 				AddButtonPressedPlayerInputCallback( player, IN_ATTACK, OnAttackPressed ) // ship attack
+				AddButtonReleasedPlayerInputCallback( player, IN_ATTACK, OnAttackReleased )
 			}
+
+
+			player.DisableWeaponViewModel()
+			player.SetParent( this.mover )
+
 
 
 			if (this.config.dualseat == true) {
@@ -358,22 +373,32 @@ void function SpaceShipClassesInit()
 			PlayFX( FX_MEGA_TURRECT_IMPACT_EXPLOSION,  expect vector (this.ship.GetOrigin()))
 		}
 
-		function ShootWeaponSystem() {
-			if (this.engineOn && this.readytofire == true) {
-				this.readytofire = false
-				entity guy = CreateMarvin(expect entity (this.embarkedplayers["driver"]).GetTeam(),expect vector(this.ship.GetOrigin() + this.ship.GetForwardVector()*600),expect vector (this.ship.GetAngles()))
-				DispatchSpawn( guy )
-				guy.Freeze()
-				guy.Hide()
-				guy.SetMaxHealth(10000)
-				guy.SetHealth(10000)
+		function ActivateWeaponSystem() {
+			while (this.weaponsactive == true) { //allows you to hold down the fire button
+				this.ShootWeaponSystem()
+				WaitFrame()
+			}
+		}
 
-				if (this.config.weaponsystem == "QuadLaserLmg") {
-					guy.ReplaceActiveWeapon("mp_weapon_defender")
-					entity weapon = guy.GetMainWeapons()[0]
-					for (int i=1;i<5;i++) {
-						if(!this.ship) {break}
-						try { //might fail if ship crashes
+		function ShootWeaponSystem() {
+			try {
+				if (this.engineOn && this.readytofire == true) {
+					this.readytofire = false
+					entity guy = CreateMarvin(expect entity (this.ship).GetTeam(),expect vector(this.ship.GetOrigin() + this.ship.GetForwardVector()*600),expect vector (this.ship.GetAngles()))
+					DispatchSpawn( guy )
+					guy.Freeze()
+					guy.Hide()
+					guy.SetMaxHealth(10000)
+					guy.SetHealth(10000)
+
+
+					/////////////////////////Quad-Laser-Lmg//////////////////////////////// (needs 4 barrels)
+					if (this.config.weaponsystem == "QuadLaserLMG") {
+						guy.ReplaceActiveWeapon("mp_weapon_defender")
+						entity weapon = guy.GetMainWeapons()[0]
+						for (int i=1;i<5;i++) {
+							if(!this.ship) {break}
+							//might fail if ship crashes
 							vector shootvector = <this.ship.GetForwardVector().x,this.ship.GetForwardVector().y,this.ship.GetForwardVector().z + 0.05> //slightly up to match the green thingy
 
 							vector au = AnglesToUp(this.ship.GetAngles())
@@ -404,22 +429,21 @@ void function SpaceShipClassesInit()
 							TraceResults r = TraceLine( origin, traceEnd, [], TRACE_MASK_SHOT, TRACE_COLLISION_GROUP_NONE )
 							CreateWeaponTracer(origin , r.endPos ,0.05)
 
-						}catch(ex) {}
-						wait 0.05
+
+							wait 0.05
+						}
+						thread this.StartWeaponSystemCooldown()
+						guy.Destroy()
+						weapon.Destroy()
 					}
-					thread this.StartWeaponSystemCooldown()
-					guy.Destroy()
-					weapon.Destroy()
 
+					/////////////////////////HeavyRockets//////////////////////////////// (needs at least 1 barrel)
+					if (this.config.weaponsystem == "HeavyRockets") {
+						guy.GiveOffhandWeapon("mp_titanweapon_dumbfire_rockets", OFFHAND_MELEE)
+						entity weapon = guy.GetOffhandWeapons()[0]
 
-				}
+						for (int i=1;i<4;i++){
 
-				if (this.config.weaponsystem == "HeavyRockets") {
-					guy.GiveOffhandWeapon("mp_titanweapon_dumbfire_rockets", OFFHAND_MELEE)
-					entity weapon = guy.GetOffhandWeapons()[0]
-
-					for (int i=1;i<4;i++){
-						try{
 							vector shootvector = <this.ship.GetForwardVector().x,this.ship.GetForwardVector().y,this.ship.GetForwardVector().z>
 
 							vector rocketorigin = expect vector (this.ship.GetOrigin()
@@ -428,21 +452,44 @@ void function SpaceShipClassesInit()
 							+ AnglesToUp(expect vector(this.ship.GetAngles())) * expect float (this.config.barrel1cannonPosUp))
 
 							weapon.FireWeaponBolt(rocketorigin,shootvector,6000,damageTypes.largeCaliberExp ,damageTypes.largeCaliberExp ,false ,0 )
+							this.PlayShipInfoSound("explo_archer_impact_1p",true)
+
+
 							wait 0.1
+						}
 
-						} catch(ex) {}
+						thread this.StartWeaponSystemCooldown()
+
+						guy.Destroy()
+						weapon.Destroy()
 					}
+					/////////////////////////FullAutoLMG////////////////////////////////
+					if (this.config.weaponsystem == "FullAutoLMG") {
 
-					thread this.StartWeaponSystemCooldown()
+						if(this.embarkedplayers["shooter"] == null || !this.embarkedplayers["shooter"]) {
+							print("no shooter present")
+							return
+						}
 
-					guy.Destroy()
-					weapon.Destroy()
+						guy.ReplaceActiveWeapon("mp_weapon_smr")
+						entity weapon = guy.GetMainWeapons()[0]
+
+						thread this.StartWeaponSystemCooldown()
+
+						vector origin = expect vector (this.ship.GetOrigin()
+						+ this.ship.GetForwardVector() * expect float(this.config.barrel1cannonPosForward)
+						+ this.ship.GetRightVector() * expect float (this.config.barrel1cannonPosRight)
+						+ AnglesToUp(expect vector(this.ship.GetAngles())) * expect float (this.config.barrel1cannonPosUp))
+
+						weapon.FireWeaponMissile( origin ,expect entity (this.embarkedplayers["shooter"]).GetViewVector(), 1.0, damageTypes.largeCaliberExp, damageTypes.largeCaliberExp, false, PROJECTILE_NOT_PREDICTED )
+						this.PlayShipInfoSound(	"weapon_sidewinder_fire_1p",true)
+
+
+						guy.Destroy()
+						weapon.Destroy()
+					}
 				}
-
-
-
-
-			}
+			}catch(ex) {}
 		}
 
 		function StartWeaponSystemCooldown() {
@@ -477,6 +524,29 @@ void function SpaceShipClassesInit()
 			} catch(ex) {this.inManeuver = false} //ship might get destroyed in the maneuver
 		}
 
+		function GunnerLookStart(playerent)
+		{
+			try{
+				entity player = expect entity (playerent)
+					while(this.gunnerView && player == this.embarkedplayers["shooter"]) {
+						vector origin = expect vector (this.ship.GetOrigin()
+						+ this.ship.GetForwardVector() * expect float(this.config.barrel1cannonPosForward)
+						+ this.ship.GetRightVector() * expect float (this.config.barrel1cannonPosRight)
+						+ AnglesToUp(expect vector(this.ship.GetAngles()))  * -200) //slightly below gun (just gonna hope they dont shoot directly down idk)
+
+						player.SetOrigin(origin)
+						player.kv.VisibilityFlags = 0
+						player.SetTakeDamageType( DAMAGE_NO )
+						WaitFrame()
+					}
+					player.SetTakeDamageType( DAMAGE_YES )
+					player.kv.VisibilityFlags = ENTITY_VISIBLE_TO_EVERYONE
+					player.SetOrigin(expect vector ( this.ship.GetOrigin()) + (expect vector (this.ship.GetForwardVector()) * expect float( this.config.cockpitForwardCorrectionShooter ))   +  (AnglesToUp( expect vector (this.ship.GetAngles())) *  expect float( this.config.cockpitUpwardCorrectionShooter ) )) //original position
+
+			}catch(ex){}
+
+		}
+
 		function PlayShipInfoSound(string soundid , bool shouldrepeat) {
 			local alreadyplayedsound = false
 
@@ -488,6 +558,9 @@ void function SpaceShipClassesInit()
 				if (this.embarkedplayers["driver"]) { //only play the sound if there is a driver present
 					EmitSoundAtPosition( this.embarkedplayers["driver"].GetTeam(), this.ship.GetOrigin() ,soundid)
 				}
+				else if (this.embarkedplayers["shooter"]) { //maybe the driver left
+					EmitSoundAtPosition( this.embarkedplayers["shooter"].GetTeam(), this.ship.GetOrigin() ,soundid)
+				}
 			}
 			if (shouldrepeat == false) {this.soundsplayed.append(soundid)}
 
@@ -496,14 +569,14 @@ void function SpaceShipClassesInit()
 
 		function ConfigFromType( string type )
 		{
-			var config = {} // fml. Can't use structs and tables because untyped is shit
+			var config = {}
 			switch( type ) {
 				case "goblin":
-					table barrel = {
-						cannonPosForward = 315.0
-						cannonPosRight = 0.0
-						cannonPosUp = -70.0
-					}
+
+					config.barrel1cannonPosForward <- 315.0
+					config.barrel1cannonPosRight <- 0.0
+					config.barrel1cannonPosUp <- -70.0
+
 
 					config.model <- $"models/vehicle/goblin_dropship/goblin_dropship_hero.mdl"
 					config.cockpitForwardCorrection <- 310.0
@@ -518,7 +591,8 @@ void function SpaceShipClassesInit()
 					config.shipheight <- 100
 					config.startheight <- 650
 					config.dualseat <- true
-					config.weaponsystem <- "palceholder"
+					config.weaponsystem <- "FullAutoLMG"
+					config.weaponcooldown <- 0.03
 				break
 				case "crow":
 
@@ -576,7 +650,7 @@ void function SpaceShipClassesInit()
 					config.shipheight <- 45
 					config.startheight <- 400
 					config.dualseat <- false
-					config.weaponsystem <- "QuadLaserLmg"
+					config.weaponsystem <- "QuadLaserLMG" //"QuadLaserLmg"
 					config.weaponcooldown <- 1
 				break
 			}
@@ -662,14 +736,29 @@ void function OnJumpInput( entity player )
 
 void function OnFreeViewPressed( entity player )
 {
-	if ( player.spaceship )
+	if ( player.spaceship ) {
 		player.spaceship.freeView = true
+	}
 }
 
 void function OnFreeViewReleased( entity player )
 {
-	if ( player.spaceship )
+	if ( player.spaceship ) {
 		player.spaceship.freeView = false
+	}
+}
+
+void function OnGunnerViewPressed (entity player){
+	if ( player.spaceship ) {
+		player.spaceship.gunnerView = true
+		thread player.spaceship.GunnerLookStart(player)
+	}
+}
+
+void function OnGunnerViewReleased (entity player){
+	if ( player.spaceship ) {
+		player.spaceship.gunnerView = false
+	}
 }
 
 void function OnMoveSlowPressed( entity player )
@@ -685,15 +774,24 @@ void function OnMoveSlowReleased( entity player )
 void function OnAttackPressed( entity player )
 {
 	if(player.spaceship) {
-		thread player.spaceship.ShootWeaponSystem()
+		player.spaceship.weaponsactive = true
+		thread player.spaceship.ActivateWeaponSystem()
 	}
 
+}
+
+void function OnAttackReleased ( entity player) {
+	if(player.spaceship) {
+		player.spaceship.weaponsactive = false
+	}
 }
 
 void function OnPilotDeath( entity player, var damageInfo )
 {
 	try{
 	player.spaceship.Disembark(false , player)
+	player.SetTakeDamageType( DAMAGE_YES )
+	player.kv.VisibilityFlags = ENTITY_VISIBLE_TO_EVERYONE
 	}catch(ex){}
 }
 
@@ -810,3 +908,4 @@ void function CreateWeaponTracer( vector startPos, vector endPos, float lifeDura
 //maybe remove sunflairs , theyre really annoying when flying
 //make beter speed control
 //roll with a/d
+//make freeview for the gunner be underneath the ship to aim
