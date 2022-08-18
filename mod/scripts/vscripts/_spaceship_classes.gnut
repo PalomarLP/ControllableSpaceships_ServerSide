@@ -311,7 +311,6 @@ void function SpaceShipClassesInit()
 
 		function StartingSequence() /* void */
 		{
-			try {this.occupationent.Destroy()}catch(ex0)
 			try {
 				if ( this.inManeuver )
 					return
@@ -330,6 +329,7 @@ void function SpaceShipClassesInit()
 
 				this.inManeuver = false
 			} catch(ex) {} //ship might get destroyed in maneuver
+			try {this.occupationent.Destroy()}catch(ex0) {}
 
 		}
 
