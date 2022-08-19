@@ -10,8 +10,8 @@ struct {
 
 void function ShipControllerInit()
 {
-	//AddClientCommandCallback( "ship", SpawnShipForPlayer )
-	//AddClientCommandCallback( "test", testfunc )
+	AddClientCommandCallback( "ship", SpawnShipForPlayer )
+	AddClientCommandCallback( "test", testfunc )
 }
 
 // Spawn a new spaceship where the player is looking at
@@ -29,16 +29,20 @@ bool function SpawnShipForPlayer( entity player, array<string> args )
 	return true
 }
 
+
+
 bool function testfunc (entity player, array<string> args ) {
 	thread testpls(player)
 	return true
 }
 
 void function testpls(entity player) {
-	if(player.spaceship) {
-		player.spaceship.config.moveTime = 100.0
-	}
+	//player.PlayerCone_Disable()
+	player.PlayerCone_FromAnim()
+	player.PlayerCone_SetMinYaw( 0 )
+	player.PlayerCone_SetMaxYaw( 0 )
+	player.PlayerCone_SetMinPitch( 0 )
+	player.PlayerCone_SetMaxPitch( 0 )
 }
 
-//mp_titanweapon_dumbfire_rockets
 

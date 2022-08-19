@@ -293,7 +293,7 @@ void function SpaceShipClassesInit()
 				{
 					WaitFrame()
 					continue
-				} else if ( IsValid( expect entity( this.ship ) ) )
+				} else if ( IsValid( expect entity( this.ship ) ))
 				{
 					vector v = expect vector( this.embarkedplayers["driver"].EyeAngles() )
 					v = <v.x,v.y,0>
@@ -305,6 +305,8 @@ void function SpaceShipClassesInit()
 					// actually rotate every 0.01 seconds
 					// this means that the player waits for 0.1 seconds before moving!
 					wait 0.01
+				} else {
+					WaitFrame()
 				}
 			}
 		}
