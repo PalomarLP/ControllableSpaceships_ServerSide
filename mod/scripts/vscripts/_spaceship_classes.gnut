@@ -66,7 +66,7 @@ void function SpaceShipClassesInit()
 			this.embarkedplayers["driver"] <- null
 			this.embarkedplayers["shooter"] <- null
 
-			//createpropforcollisiondetection
+			//create a temporary box that only stays until the ship takes off (used for detection of the straton by other mods , since that ship doesnt have a proper hitbox)
 			this.occupationent = CreatePropDynamic($"models/containers/pelican_case_large.mdl",<0,0,0>,<0, 0, 0>,SOLID_VPHYSICS)
 			this.occupationent.SetOrigin( origin + < 0, 0, expect float( this.config.groundToFeet ) > )
 			this.occupationent.Hide()
@@ -98,6 +98,7 @@ void function SpaceShipClassesInit()
 			this.mover = CreateExpensiveScriptMover( origin, <0, shipAngles.y, shipAngles.z> )
 
 			this.ship.SetParent( this.mover )
+			this.occupationent.SetParent(this.mover)
 
 			spaceships[expect entity( this.ship )] <- this
 

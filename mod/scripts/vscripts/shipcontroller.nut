@@ -10,7 +10,7 @@ struct {
 
 void function ShipControllerInit()
 {
-	//AddClientCommandCallback( "ship", SpawnShipForPlayer )
+	AddClientCommandCallback( "ship", SpawnShipForPlayer )
 	//AddClientCommandCallback( "test", testfunc )
 }
 
