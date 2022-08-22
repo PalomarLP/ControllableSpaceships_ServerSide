@@ -10,8 +10,8 @@ struct {
 
 void function ShipControllerInit()
 {
-	AddClientCommandCallback( "ship", SpawnShipForPlayer )
-	AddClientCommandCallback( "test", testfunc )
+	//AddClientCommandCallback( "ship", SpawnShipForPlayer )
+	//AddClientCommandCallback( "test", testfunc )
 }
 
 // Spawn a new spaceship where the player is looking at

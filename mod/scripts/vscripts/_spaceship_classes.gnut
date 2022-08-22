@@ -457,6 +457,7 @@ void function SpaceShipClassesInit()
 					if (this.config.weaponsystem == "HeavyRockets") {
 						guy.GiveOffhandWeapon("mp_titanweapon_dumbfire_rockets", OFFHAND_MELEE)
 						entity weapon = guy.GetOffhandWeapons()[0]
+						weapon.SetOwner(this.embarkedplayers["driver"])
 
 						for (int i=1;i<4;i++){
 
@@ -623,7 +624,7 @@ void function SpaceShipClassesInit()
 					//todo: add shooter poscoorection just in case
 					//
 					config.explosions <- [ FX_MEGA_TURRECT_IMPACT_EXPLOSION ]
-					config.health <- 1750
+					config.health <- 1500
 					config.moveTime <- 1.0
 					config.groundToFeet <- 100.0
 					config.shipwidth <- 250
@@ -659,7 +660,7 @@ void function SpaceShipClassesInit()
 					//todo: add shooter poscoorection just in case
 					//
 					config.explosions <- [ FX_MEGA_TURRECT_IMPACT_EXPLOSION ]
-					config.health <- 1250
+					config.health <- 1000
 					config.moveTime <- 0.6
 					config.groundToFeet <- 0.0
 					config.shipwidth <- 100
@@ -681,16 +682,27 @@ void function SpaceShipClassesInit()
 
 void function OnShipDamaged( entity ship, var damageInfo )
 {
-	if ( !IsValid( ship ) )
+	if ( !IsValid( ship ) ) {
 		return
+	}
+
 
 
 	int damageSourceID = DamageInfo_GetDamageSourceIdentifier( damageInfo )
 	entity attacker = DamageInfo_GetAttacker( damageInfo )
 	float damageAmount = DamageInfo_GetDamage( damageInfo )
 
-	if ( !damageSourceID && !damageAmount && !attacker )
+	if ( !damageSourceID && !damageAmount && !attacker ) {
 		return
+	}
+
+	if (attacker.IsTitan()) { //make them more difficult for titans without making them indestructable for pilots
+		damageAmount = damageAmount / 2.5
+		print ("Titan Damage Detected")
+	}
+
+
+
 
 
 	float newHealth = ship.GetHealth() - damageAmount
@@ -924,4 +936,7 @@ void function CreateWeaponTracer( vector startPos, vector endPos, float lifeDura
 //make beter speed control
 //roll with a/d
 //make gunnerview less janky and add some sort of indicators
-//maybe add some instructions idk
+//make kills count for the driver
+
+//X //make the weapon owner the player so kill give points (dk if it works like that) [didnt work]
+//X //try using SOLID_BBOX instead of SOLID_VPHYSICS so i dont have to put that stupid box there [Didn't work , the resulting hitbox is way to large on starton]
