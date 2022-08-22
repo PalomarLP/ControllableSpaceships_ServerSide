@@ -10,7 +10,7 @@ struct {
 
 void function ShipControllerInit()
 {
-	AddClientCommandCallback( "ship", SpawnShipForPlayer )
+	//AddClientCommandCallback( "ship", SpawnShipForPlayer )
 	//AddClientCommandCallback( "test", testfunc )
 }
 
@@ -37,12 +37,10 @@ bool function testfunc (entity player, array<string> args ) {
 }
 
 void function testpls(entity player) {
-	//player.PlayerCone_Disable()
-	player.PlayerCone_FromAnim()
-	player.PlayerCone_SetMinYaw( 0 )
-	player.PlayerCone_SetMaxYaw( 0 )
-	player.PlayerCone_SetMinPitch( 0 )
-	player.PlayerCone_SetMaxPitch( 0 )
+	while (true) {
+		print(player.GetInputAxisForward())
+		WaitFrame()
+	}
 }
 
 

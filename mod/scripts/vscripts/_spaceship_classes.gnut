@@ -155,8 +155,10 @@ void function SpaceShipClassesInit()
 
 
 
-				AddButtonPressedPlayerInputCallback( player, IN_BACK, OnMoveSlowPressed ) // move slow start
-				AddButtonReleasedPlayerInputCallback( player, IN_BACK, OnMoveSlowReleased ) // move slow end
+				//AddButtonPressedPlayerInputCallback( player, IN_BACK, OnMoveSlowPressed ) // move slow start
+				//AddButtonReleasedPlayerInputCallback( player, IN_BACK, OnMoveSlowReleased ) // move slow end
+				thread this.StartMoveControlTracking() //also works on controler
+
 
 			} else if (this.embarkedplayers["shooter"] == null && this.config.dualseat == true) {
 				this.embarkedplayers["shooter"] <- player
@@ -283,6 +285,17 @@ void function SpaceShipClassesInit()
 					this.mover.NonPhysicsMoveTo( moveTo, moveTime , 0, 0.2 )
 				}
 				wait 0.1
+			}
+		}
+
+		function StartMoveControlTracking() {
+			while (this.embarkedplayers["driver"]) {
+				if(this.embarkedplayers["driver"].GetInputAxisForward() < 0) {
+					this.moveSlow = true
+				} else {
+					this.moveSlow = false
+				}
+				WaitFrame()
 			}
 		}
 
@@ -699,7 +712,6 @@ void function OnShipDamaged( entity ship, var damageInfo )
 
 	if (attacker.IsTitan()) { //make them more difficult for titans without making them indestructable for pilots
 		damageAmount = damageAmount / 2.5
-		print ("Titan Damage Detected")
 	}
 
 
@@ -933,11 +945,15 @@ void function CreateWeaponTracer( vector startPos, vector endPos, float lifeDura
 
 
 
+//game crashes sometimes when killing titans with crow (not damaging just killing)
 //maybe remove sunflairs , theyre really annoying when flying
 //make beter speed control
 //roll with a/d
 //make gunnerview less janky and add some sort of indicators
 //make kills count for the driver
 
+
 //X //make the weapon owner the player so kill give points (dk if it works like that) [didnt work]
 //X //try using SOLID_BBOX instead of SOLID_VPHYSICS so i dont have to put that stupid box there [Didn't work , the resulting hitbox is way to large on starton]
+
+//done: moveslow doesnt work on controler //used player.GetInputAxisForward() as a workaround
