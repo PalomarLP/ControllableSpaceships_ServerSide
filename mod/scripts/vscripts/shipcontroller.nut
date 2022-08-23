@@ -32,15 +32,13 @@ bool function SpawnShipForPlayer( entity player, array<string> args )
 
 
 bool function testfunc (entity player, array<string> args ) {
-	thread testpls(player)
+
 	return true
 }
 
 void function testpls(entity player) {
-	while (true) {
-		print(player.GetInputAxisForward())
-		WaitFrame()
-	}
+
+
 }
 
 

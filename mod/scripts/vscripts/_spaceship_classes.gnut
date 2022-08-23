@@ -43,10 +43,8 @@ void function SpaceShipClassesInit()
 		ship = null // CDynamicProp		| holds the ingame prop of the ship
 		mover = null // script_mover	| moves the player and prop
 		engineOn = false // boolean		| controls if the spaceship is allowed to move
-		moveTime = 0.5 // float			| time of the mover to move to the next point
 		inManeuver = false // boolean	| true if the ship is landing / starting
 		freeView = false // boolean		| true when the player is not changing directions with view
-		moveSlow = false // boolean		| move slowly, still very janky
 		startManeuverTime = 1.5 //float | how long the starting sequence takes
 		landingManeuverTime = 1.5//float| how long the landing sequence takes
 		embarkedplayers = {} //table    | tracks players who are in the ship
@@ -154,9 +152,6 @@ void function SpaceShipClassesInit()
 				AddButtonReleasedPlayerInputCallback( player, IN_ZOOM_TOGGLE, OnFreeViewReleased ) // freeview end alt button
 
 
-
-				//AddButtonPressedPlayerInputCallback( player, IN_BACK, OnMoveSlowPressed ) // move slow start
-				//AddButtonReleasedPlayerInputCallback( player, IN_BACK, OnMoveSlowReleased ) // move slow end
 				thread this.StartMoveControlTracking() //also works on controler
 
 
@@ -278,7 +273,6 @@ void function SpaceShipClassesInit()
 				if ( this.engineOn )
 				{
 					float moveTime = expect float( this.config.moveTime )
-					if ( this.moveSlow == true ) {moveTime = moveTime * 2}
 
 					vector moveTo = expect vector( this.ship.GetOrigin() + this.ship.GetForwardVector() * 500 )
 
@@ -289,12 +283,20 @@ void function SpaceShipClassesInit()
 		}
 
 		function StartMoveControlTracking() {
+			float origMoveTime = expect float (this.config.moveTime)
 			while (this.embarkedplayers["driver"]) {
-				if(this.embarkedplayers["driver"].GetInputAxisForward() < 0) {
-					this.moveSlow = true
-				} else {
-					this.moveSlow = false
+
+				if(this.embarkedplayers["driver"].GetInputAxisForward() < 0 && expect float (this.config.moveTime) < 3) { //slow down
+					this.config.moveTime = this.config.moveTime * 1.15
 				}
+				if (this.embarkedplayers["driver"].GetInputAxisForward() > 0 && expect float (this.config.moveTime) > origMoveTime){ //speed up
+					this.config.moveTime = this.config.moveTime * 0.75
+				}
+
+				if (this.config.moveTime < origMoveTime ) { //limit
+					this.config.moveTime = origMoveTime
+				}
+
 				WaitFrame()
 			}
 		}
@@ -303,14 +305,14 @@ void function SpaceShipClassesInit()
 		{
 			// entity prop
 			while( IsValid( expect entity( this.ship ) ) ) {
-				if ( !this.ship || !this.mover || !this.embarkedplayers["driver"] || !this.engineOn || this.freeView )
-				{
+				if ( !this.ship || !this.mover || !this.embarkedplayers["driver"] || !this.engineOn || this.freeView ){
 					WaitFrame()
 					continue
-				} else if ( IsValid( expect entity( this.ship ) ))
-				{
+				} else if ( IsValid( expect entity( this.ship ) )  ) {
+					if (!(this.embarkedplayers["driver"].GetViewVector().z < -0.95) && !(this.embarkedplayers["driver"].GetViewVector().z > 0.95)) { //extrmely bad and temporary solution
 					vector v = expect vector( this.embarkedplayers["driver"].EyeAngles() )
 					v = <v.x,v.y,0>
+
 
 					// move for 0.5 seconds to account for higher ping maybe?
 					// with a lower move time the view sometimes starts "stuttering"
@@ -319,6 +321,10 @@ void function SpaceShipClassesInit()
 					// actually rotate every 0.01 seconds
 					// this means that the player waits for 0.1 seconds before moving!
 					wait 0.01
+					} else{
+						//
+						WaitFrame()
+					}
 				} else {
 					WaitFrame()
 				}
@@ -802,15 +808,6 @@ void function OnGunnerViewReleased (entity player){
 	}
 }
 
-void function OnMoveSlowPressed( entity player )
-{
-	player.spaceship.moveSlow = true
-}
-
-void function OnMoveSlowReleased( entity player )
-{
-	player.spaceship.moveSlow = false
-}
 
 void function OnAttackPressed( entity player )
 {
@@ -859,8 +856,6 @@ void function DeregisterAllButtons( entity player )
 	RemoveButtonPressedPlayerInputCallback( player, IN_DUCK , OnExitUsed )
 	RemoveButtonPressedPlayerInputCallback( player, IN_ZOOM , OnFreeViewPressed )
 	RemoveButtonReleasedPlayerInputCallback( player, IN_ZOOM, OnFreeViewReleased )
-	RemoveButtonPressedPlayerInputCallback( player, IN_BACK, OnMoveSlowPressed )
-	RemoveButtonReleasedPlayerInputCallback( player, IN_BACK, OnMoveSlowReleased )
 	RemoveButtonPressedPlayerInputCallback( player, IN_ATTACK, OnAttackPressed )
 }
 
@@ -947,13 +942,14 @@ void function CreateWeaponTracer( vector startPos, vector endPos, float lifeDura
 
 //game crashes sometimes when killing titans with crow (not damaging just killing)
 //maybe remove sunflairs , theyre really annoying when flying
-//make beter speed control
-//roll with a/d
+
 //make gunnerview less janky and add some sort of indicators
 //make kills count for the driver
 
 
 //X //make the weapon owner the player so kill give points (dk if it works like that) [didnt work]
 //X //try using SOLID_BBOX instead of SOLID_VPHYSICS so i dont have to put that stupid box there [Didn't work , the resulting hitbox is way to large on starton]
+//X //roll with a/d [was stupid , extremly disoiriantating]
 
 //done: moveslow doesnt work on controler //used player.GetInputAxisForward() as a workaround
+//sorta done , might want to change that later: make beter speed control
