@@ -44,6 +44,7 @@ void function SpaceShipClassesInit()
 		mover = null // script_mover	| moves the player and prop
 		engineOn = false // boolean		| controls if the spaceship is allowed to move
 		inManeuver = false // boolean	| true if the ship is landing / starting
+		origMoveTime = null //float     | the original movetime of the shipclass
 		freeView = false // boolean		| true when the player is not changing directions with view
 		startManeuverTime = 1.5 //float | how long the starting sequence takes
 		landingManeuverTime = 1.5//float| how long the landing sequence takes
@@ -69,6 +70,8 @@ void function SpaceShipClassesInit()
 			this.occupationent.SetOrigin( origin + < 0, 0, expect float( this.config.groundToFeet ) > )
 			this.occupationent.Hide()
 
+
+			this.origMoveTime = expect float (this.config.moveTime)
 
 
 			// create the ship prop
@@ -103,6 +106,7 @@ void function SpaceShipClassesInit()
 			thread this.MoveShip()
 			thread this.RotateShip()
 			thread this.ClippingCheck()
+			thread this.StartMoveControlTracking()
 
 
 		}
@@ -151,8 +155,8 @@ void function SpaceShipClassesInit()
 				AddButtonPressedPlayerInputCallback( player, IN_ZOOM_TOGGLE , OnFreeViewPressed ) // freeview start alt button
 				AddButtonReleasedPlayerInputCallback( player, IN_ZOOM_TOGGLE, OnFreeViewReleased ) // freeview end alt button
 
+				//forward backswards is tracked in StartMoveControlTracking()
 
-				thread this.StartMoveControlTracking() //also works on controler
 
 
 			} else if (this.embarkedplayers["shooter"] == null && this.config.dualseat == true) {
@@ -283,18 +287,19 @@ void function SpaceShipClassesInit()
 		}
 
 		function StartMoveControlTracking() {
-			float origMoveTime = expect float (this.config.moveTime)
-			while (this.embarkedplayers["driver"]) {
+			while (IsValid(expect entity (this.ship))) {
+				if (this.embarkedplayers["driver"]) {
+					if(this.embarkedplayers["driver"].GetInputAxisForward() < 0 && expect float (this.config.moveTime) < 3) { //slow down
+						this.config.moveTime = this.config.moveTime * 1.15
+					}
+					if (this.embarkedplayers["driver"].GetInputAxisForward() > 0 && expect float (this.config.moveTime) > this.origMoveTime){ //speed up
+						this.config.moveTime = this.config.moveTime * 0.75
+					}
 
-				if(this.embarkedplayers["driver"].GetInputAxisForward() < 0 && expect float (this.config.moveTime) < 3) { //slow down
-					this.config.moveTime = this.config.moveTime * 1.15
-				}
-				if (this.embarkedplayers["driver"].GetInputAxisForward() > 0 && expect float (this.config.moveTime) > origMoveTime){ //speed up
-					this.config.moveTime = this.config.moveTime * 0.75
-				}
+					if (this.config.moveTime < this.origMoveTime ) { //limit
+						this.config.moveTime = this.origMoveTime
+					}
 
-				if (this.config.moveTime < origMoveTime ) { //limit
-					this.config.moveTime = origMoveTime
 				}
 
 				WaitFrame()
