@@ -313,7 +313,7 @@ void function SpaceShipClassesInit()
 				if ( !this.ship || !this.mover || !this.embarkedplayers["driver"] || !this.engineOn || this.freeView ){
 					WaitFrame()
 					continue
-				} else if ( IsValid( expect entity( this.ship ) )  ) {
+				} else if ( IsValid( expect entity( this.ship )) && IsValid( expect entity(this.embarkedplayers["driver"]))  ) {
 					if (!(this.embarkedplayers["driver"].GetViewVector().z < -0.95) && !(this.embarkedplayers["driver"].GetViewVector().z > 0.95)) { //extrmely bad and temporary solution
 					vector v = expect vector( this.embarkedplayers["driver"].EyeAngles() )
 					v = <v.x,v.y,0>
