@@ -393,25 +393,27 @@ void function SpaceShipClassesInit()
 		}
 
 		function Explode() {
-			try {this.occupationent.Destroy()}catch(ex0)
-			this.ship.ClearParent()
-			EmitSoundAtPosition( TEAM_UNASSIGNED, this.ship.GetOrigin(),"titan_death_explode")
+			try {
+				try{this.occupationent.Destroy()}catch(exc) {}
+				this.ship.ClearParent()
+				EmitSoundAtPosition( TEAM_UNASSIGNED, this.ship.GetOrigin(),"titan_death_explode")
 
-			foreach (key,value in this.embarkedplayers) {
-				if( value )
-				{
-					value.ClearParent()
-					this.Disembark(true , value) //need to make it so that both eject
+				foreach (key,value in this.embarkedplayers) {
+					if( value )
+					{
+						value.ClearParent()
+						this.Disembark(true , value) //need to make it so that both eject
+					}
 				}
-			}
 
 
-			this.ship.Destroy()
+				this.ship.Destroy()
 
-			if(IsValid(this.mover)) { this.mover.Destroy() }
+				if(IsValid(this.mover)) { this.mover.Destroy() }
 
 
-			PlayFX( FX_MEGA_TURRECT_IMPACT_EXPLOSION,  expect vector (this.ship.GetOrigin()))
+				PlayFX( FX_MEGA_TURRECT_IMPACT_EXPLOSION,  expect vector (this.ship.GetOrigin()))
+			}catch(ex0)
 		}
 
 		function ActivateWeaponSystem() {
