@@ -113,13 +113,17 @@ void function SpaceShipClassesInit()
 
 		function SetShipFree() /* void */
 		{
-			this.ship.SetUsableByGroup( "pilot" )
-			this.ship.SetUsePrompts( "Press %use% to enter", "Press %use% to enter")
+			if (IsValid(this.ship)) {
+				this.ship.SetUsableByGroup( "pilot" )
+				this.ship.SetUsePrompts( "Press %use% to enter", "Press %use% to enter")
+			}
 		}
 
 		function SetShipOccupied() /* void */
 		{
-			this.ship.UnsetUsable()
+			if (IsValid (this.ship)) {
+				this.ship.UnsetUsable()
+			}
 		}
 
 		function Embark( /* CPlayer */ var player ) // void
@@ -274,20 +278,23 @@ void function SpaceShipClassesInit()
 		{
 			while ( IsValid( expect entity( this.ship ) ) )
 			{
+				try{
 				if ( this.engineOn )
-				{
-					float moveTime = expect float( this.config.moveTime )
+					{
+						float moveTime = expect float( this.config.moveTime )
 
-					vector moveTo = expect vector( this.ship.GetOrigin() + this.ship.GetForwardVector() * 500 )
+						vector moveTo = expect vector( this.ship.GetOrigin() + this.ship.GetForwardVector() * 500 )
 
-					this.mover.NonPhysicsMoveTo( moveTo, moveTime , 0, 0.2 )
-				}
+						this.mover.NonPhysicsMoveTo( moveTo, moveTime , 0, 0.2 )
+					}
+				}catch(ex) {print(ex)}
 				wait 0.1
 			}
 		}
 
 		function StartMoveControlTracking() {
 			while (IsValid(expect entity (this.ship))) {
+				try {
 				if (this.embarkedplayers["driver"]) {
 					if(this.embarkedplayers["driver"].GetInputAxisForward() < 0 && expect float (this.config.moveTime) < 3) { //slow down
 						this.config.moveTime = this.config.moveTime * 1.15
@@ -301,6 +308,7 @@ void function SpaceShipClassesInit()
 					}
 
 				}
+				}catch(ex) {print(ex)}
 
 				WaitFrame()
 			}
@@ -310,6 +318,7 @@ void function SpaceShipClassesInit()
 		{
 			// entity prop
 			while( IsValid( expect entity( this.ship ) ) ) {
+				try {
 				if ( !this.ship || !this.mover || !this.embarkedplayers["driver"] || !this.engineOn || this.freeView ){
 					WaitFrame()
 					continue
@@ -333,6 +342,8 @@ void function SpaceShipClassesInit()
 				} else {
 					WaitFrame()
 				}
+				}catch(ex) {print(ex);WaitFrame()}
+
 			}
 		}
 
@@ -363,6 +374,7 @@ void function SpaceShipClassesInit()
 		function ClippingCheck() {
 			while ( IsValid( expect entity( this.ship ) ) )
 			{
+				try {
 				if ( this.engineOn)
 				{
 					local ignorents = [];
@@ -388,6 +400,7 @@ void function SpaceShipClassesInit()
 
 
 				}
+				}catch(ex) {print(ex)}
 				WaitFrame()
 			}
 		}
