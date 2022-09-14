@@ -413,7 +413,7 @@ void function SpaceShipClassesInit()
 
 
 				PlayFX( FX_MEGA_TURRECT_IMPACT_EXPLOSION,  expect vector (this.ship.GetOrigin()))
-			}catch(ex0)
+			}catch(ex0) {}
 		}
 
 		function ActivateWeaponSystem() {
