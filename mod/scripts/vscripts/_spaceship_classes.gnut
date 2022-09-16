@@ -605,23 +605,30 @@ void function SpaceShipClassesInit()
 		}
 
 		function PlayShipInfoSound(string soundid , bool shouldrepeat) {
-			local alreadyplayedsound = false
+			try {
+				local alreadyplayedsound = false
 
-			foreach (sound in this.soundsplayed) {
-				if (sound == soundid) {alreadyplayedsound = true}
-			}
-
-			if (alreadyplayedsound ==false) {
-				if (this.embarkedplayers["driver"]) { //only play the sound if there is a driver present
-					EmitSoundAtPosition( this.embarkedplayers["driver"].GetTeam(), this.ship.GetOrigin() ,soundid)
+				foreach (sound in this.soundsplayed) {
+					if (sound == soundid) {alreadyplayedsound = true}
 				}
-				else if (this.embarkedplayers["shooter"]) { //maybe the driver left
-					EmitSoundAtPosition( this.embarkedplayers["shooter"].GetTeam(), this.ship.GetOrigin() ,soundid)
+
+				if (alreadyplayedsound ==false) {
+					/*
+					if (this.embarkedplayers["driver"]) { //only play the sound if there is a driver present
+						EmitSoundAtPosition( this.embarkedplayers["driver"].GetTeam(), this.ship.GetOrigin() ,soundid)
+					}
+					else if (this.embarkedplayers["shooter"]) { //maybe the driver left
+						EmitSoundAtPosition( this.embarkedplayers["shooter"].GetTeam(), this.ship.GetOrigin() ,soundid)
+					}*/
+					foreach (key,player in this.embarkedplayers){
+						if (IsValid(player)) {
+							EmitSoundOnEntityOnlyToPlayer(player,player,soundid )
+						}
+					}
 				}
-			}
-			if (shouldrepeat == false) {this.soundsplayed.append(soundid)}
+				if (shouldrepeat == false) {this.soundsplayed.append(soundid)}
 
-
+			}catch(ex) {print(ex)}
 		}
 
 		function ConfigFromType( string type )
@@ -965,6 +972,8 @@ void function CreateWeaponTracer( vector startPos, vector endPos, float lifeDura
 
 //make gunnerview less janky and add some sort of indicators
 //make kills count for the driver
+
+//add chathook color
 
 
 //X //make the weapon owner the player so kill give points (dk if it works like that) [didnt work]
