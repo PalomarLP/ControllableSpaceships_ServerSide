@@ -139,9 +139,9 @@ void function SpaceShipClassesInit()
 			player.TouchGround()
 			player.ForceStand()
 
-			if (this.embarkedplayers["driver"] == null) {
+			if (this.embarkedplayers["driver"] == null) { //driver
 				this.embarkedplayers["driver"] <- player
-				if(this.config.dualseat == true ){Chat_ServerPrivateMessage(player,"You embarked a ship as a driver!", false)} else {Chat_ServerPrivateMessage(player,"You embarked a ship!", false)}
+				if(this.config.dualseat == true ){Chat_ServerPrivateMessage(player,"\x1b[33mYou embarked a ship as a \x1b[31mdriver!\x1b[0m", false)} else {Chat_ServerPrivateMessage(player,"\x1b[33mYou embarked a ship!\x1b[0m", false)}
 
 				vector au = AnglesToUp( shipAngles )
 				vector fv = expect vector (this.ship.GetForwardVector())
@@ -163,9 +163,9 @@ void function SpaceShipClassesInit()
 
 
 
-			} else if (this.embarkedplayers["shooter"] == null && this.config.dualseat == true) {
+			} else if (this.embarkedplayers["shooter"] == null && this.config.dualseat == true) { //gunner
 				this.embarkedplayers["shooter"] <- player
-				Chat_ServerPrivateMessage(player,"You embarked a ship as a gunner!", false)
+				Chat_ServerPrivateMessage(player,"\x1b[33mYou embarked a ship as a \x1b[31mgunner!\x1b[0m", false)
 
 				vector au = AnglesToUp( shipAngles )
 				vector fv = expect vector (this.ship.GetForwardVector())
