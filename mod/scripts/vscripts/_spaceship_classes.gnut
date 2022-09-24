@@ -745,13 +745,11 @@ void function OnShipDamaged( entity ship, var damageInfo )
 		return
 	}
 
+	thread CreateHitmarkerForPlayer(attacker,ship.GetOrigin())
+
 	if (attacker.IsTitan()) { //make them more difficult for titans without making them indestructable for pilots
 		damageAmount = damageAmount / 2.5
 	}
-
-
-
-
 
 	float newHealth = ship.GetHealth() - damageAmount
 	ship.SetHealth( newHealth )
@@ -760,11 +758,12 @@ void function OnShipDamaged( entity ship, var damageInfo )
 		spaceships[ship].PlayShipInfoSound("diag_gs_titanLegion_prime_briefCriticalDamage", false)
 	}
 
-
 	if( newHealth <= 0 )
 	{
 		spaceships[ship].Explode()
 	}
+
+
 
 }
 
@@ -964,6 +963,19 @@ void function CreateWeaponTracer( vector startPos, vector endPos, float lifeDura
 	tracer.Fire( "StopPlayEndCap", "", lifeDuration )
 	tracer.Kill_Deprecated_UseDestroyInstead( lifeDuration )
 	cpEnd.Kill_Deprecated_UseDestroyInstead( lifeDuration )
+
+}
+
+void function CreateHitmarkerForPlayer(entity player, vector pos = <0,0,0>) {
+	try {
+		entity guy = CreateSoldier(TEAM_BOTH,pos,<0,0,0>)
+		DispatchSpawn( guy )
+		guy.Freeze()
+		guy.Hide()
+		wait 0.2
+		guy.TakeDamage(1,player,null, { })
+		guy.Destroy()
+	}catch(ex) {print(ex)}
 
 }
 
