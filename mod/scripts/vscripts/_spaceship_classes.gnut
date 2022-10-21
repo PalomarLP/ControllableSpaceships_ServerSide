@@ -128,103 +128,105 @@ void function SpaceShipClassesInit()
 
 		function Embark( /* CPlayer */ var player ) // void
 		{
-			if (IsValid(expect entity(player)) && IsAlive(expect entity(player))) {
-				expect entity( player )
+			try{
+				if (IsValid(expect entity(player)) && IsAlive(expect entity(player))) {
+					expect entity( player )
 
-				player.spaceship = this
+					player.spaceship = this
 
-				vector shipAngles = expect vector( this.ship.EyeAngles() )
-				vector shipOrigin = expect vector( this.ship.GetOrigin() )
-				player.SetAngles(<0,shipAngles.y,shipAngles.z>)
+					vector shipAngles = expect vector( this.ship.EyeAngles() )
+					vector shipOrigin = expect vector( this.ship.GetOrigin() )
+					player.SetAngles(<0,shipAngles.y,shipAngles.z>)
 
-				player.TouchGround()
-				player.ForceStand()
+					player.TouchGround()
+					player.ForceStand()
 
-				if (this.embarkedplayers["driver"] == null) { //driver
-					this.embarkedplayers["driver"] <- player
-					if(this.config.dualseat == true ){
-						//Chat_ServerPrivateMessage(player,"\x1b[33mYou embarked a ship as a \x1b[31mdriver!\x1b[0m", false)
-						NSSendInfoMessageToPlayer( player, "Embarked a Ship as a Driver" )
-					} else {
-						//Chat_ServerPrivateMessage(player,"\x1b[33mYou embarked a ship!\x1b[0m", false)
-						NSSendInfoMessageToPlayer( player, "Embarked a Ship" )
+					if (this.embarkedplayers["driver"] == null) { //driver
+						this.embarkedplayers["driver"] <- player
+						if(this.config.dualseat == true ){
+							//Chat_ServerPrivateMessage(player,"\x1b[33mYou embarked a ship as a \x1b[31mdriver!\x1b[0m", false)
+							NSSendInfoMessageToPlayer( player, "Embarked a Ship as a Driver" )
+						} else {
+							//Chat_ServerPrivateMessage(player,"\x1b[33mYou embarked a ship!\x1b[0m", false)
+							NSSendInfoMessageToPlayer( player, "Embarked a Ship" )
+						}
+
+						vector au = AnglesToUp( shipAngles )
+						vector fv = expect vector (this.ship.GetForwardVector())
+
+						float forwardCorrection = expect float( this.config.cockpitForwardCorrection )
+						float upwardCorrection = expect float( this.config.cockpitUpwardCorrection )
+						player.SetOrigin( shipOrigin + (fv * forwardCorrection)   +  (au * upwardCorrection) )
+						player.SetAngles( shipAngles )
+
+						//only give driver control
+						AddButtonPressedPlayerInputCallback( player, IN_JUMP , OnJumpInput ) // starting / landing
+
+						AddButtonPressedPlayerInputCallback( player, IN_ZOOM , OnFreeViewPressed ) // freeview start
+						AddButtonReleasedPlayerInputCallback( player, IN_ZOOM, OnFreeViewReleased ) // freeview end
+						AddButtonPressedPlayerInputCallback( player, IN_ZOOM_TOGGLE , OnFreeViewPressed ) // freeview start alt button
+						AddButtonReleasedPlayerInputCallback( player, IN_ZOOM_TOGGLE, OnFreeViewReleased ) // freeview end alt button
+
+						//forward backswards is tracked in StartMoveControlTracking()
+
+
+
+					} else if (this.embarkedplayers["shooter"] == null && this.config.dualseat == true) { //gunner
+						this.embarkedplayers["shooter"] <- player
+						//Chat_ServerPrivateMessage(player,"\x1b[33mYou embarked a ship as a \x1b[31mgunner!\x1b[0m", false)
+						NSSendInfoMessageToPlayer( player, "Embarked a Ship as Gunner" )
+
+						vector au = AnglesToUp( shipAngles )
+						vector fv = expect vector (this.ship.GetForwardVector())
+
+						float forwardCorrection = expect float( this.config.cockpitForwardCorrectionShooter )
+						float upwardCorrection = expect float( this.config.cockpitUpwardCorrectionShooter )
+						player.SetOrigin( shipOrigin + (fv * forwardCorrection)   +  (au * upwardCorrection) )
+						player.SetAngles( shipAngles )
+
+
+						AddButtonPressedPlayerInputCallback( player, IN_ATTACK, OnAttackPressed ) // always give gunner attack controls
+						AddButtonReleasedPlayerInputCallback( player, IN_ATTACK, OnAttackReleased )
+
+						AddButtonPressedPlayerInputCallback( player, IN_ZOOM , OnGunnerViewPressed )
+						AddButtonReleasedPlayerInputCallback( player, IN_ZOOM, OnGunnerViewReleased )
+						AddButtonPressedPlayerInputCallback( player, IN_ZOOM_TOGGLE ,  OnGunnerViewPressed )
+						AddButtonReleasedPlayerInputCallback( player, IN_ZOOM_TOGGLE, OnGunnerViewReleased )
 					}
 
-					vector au = AnglesToUp( shipAngles )
-					vector fv = expect vector (this.ship.GetForwardVector())
+					this.PlayShipInfoSound("HUD_Boost_Card_Radar_Jammer_RedTextBeep_1P",true) //beepclick sound
+					this.PlayShipInfoSound("titan_eject_xbutton",true)
 
-					float forwardCorrection = expect float( this.config.cockpitForwardCorrection )
-					float upwardCorrection = expect float( this.config.cockpitUpwardCorrection )
-					player.SetOrigin( shipOrigin + (fv * forwardCorrection)   +  (au * upwardCorrection) )
-					player.SetAngles( shipAngles )
+					AddButtonPressedPlayerInputCallback( player, IN_DUCK , OnExitUsed ) // exiting
+					AddButtonPressedPlayerInputCallback( player, IN_DUCKTOGGLE , OnExitUsed ) // exiting alt button
 
-					//only give driver control
-					AddButtonPressedPlayerInputCallback( player, IN_JUMP , OnJumpInput ) // starting / landing
 
-					AddButtonPressedPlayerInputCallback( player, IN_ZOOM , OnFreeViewPressed ) // freeview start
-					AddButtonReleasedPlayerInputCallback( player, IN_ZOOM, OnFreeViewReleased ) // freeview end
-					AddButtonPressedPlayerInputCallback( player, IN_ZOOM_TOGGLE , OnFreeViewPressed ) // freeview start alt button
-					AddButtonReleasedPlayerInputCallback( player, IN_ZOOM_TOGGLE, OnFreeViewReleased ) // freeview end alt button
+					if (this.config.dualseat == false) {
+						AddButtonPressedPlayerInputCallback( player, IN_ATTACK, OnAttackPressed ) // ship attack
+						AddButtonReleasedPlayerInputCallback( player, IN_ATTACK, OnAttackReleased )
+					}
 
-					//forward backswards is tracked in StartMoveControlTracking()
+
+					player.DisableWeaponViewModel()
+					player.SetParent( this.mover )
 
 
 
-				} else if (this.embarkedplayers["shooter"] == null && this.config.dualseat == true) { //gunner
-					this.embarkedplayers["shooter"] <- player
-					//Chat_ServerPrivateMessage(player,"\x1b[33mYou embarked a ship as a \x1b[31mgunner!\x1b[0m", false)
-					NSSendInfoMessageToPlayer( player, "Embarked a Ship as Gunner" )
-
-					vector au = AnglesToUp( shipAngles )
-					vector fv = expect vector (this.ship.GetForwardVector())
-
-					float forwardCorrection = expect float( this.config.cockpitForwardCorrectionShooter )
-					float upwardCorrection = expect float( this.config.cockpitUpwardCorrectionShooter )
-					player.SetOrigin( shipOrigin + (fv * forwardCorrection)   +  (au * upwardCorrection) )
-					player.SetAngles( shipAngles )
-
-
-					AddButtonPressedPlayerInputCallback( player, IN_ATTACK, OnAttackPressed ) // always give gunner attack controls
-					AddButtonReleasedPlayerInputCallback( player, IN_ATTACK, OnAttackReleased )
-
-					AddButtonPressedPlayerInputCallback( player, IN_ZOOM , OnGunnerViewPressed )
-					AddButtonReleasedPlayerInputCallback( player, IN_ZOOM, OnGunnerViewReleased )
-					AddButtonPressedPlayerInputCallback( player, IN_ZOOM_TOGGLE ,  OnGunnerViewPressed )
-					AddButtonReleasedPlayerInputCallback( player, IN_ZOOM_TOGGLE, OnGunnerViewReleased )
-				}
-
-				this.PlayShipInfoSound("HUD_Boost_Card_Radar_Jammer_RedTextBeep_1P",true) //beepclick sound
-				this.PlayShipInfoSound("titan_eject_xbutton",true)
-
-				AddButtonPressedPlayerInputCallback( player, IN_DUCK , OnExitUsed ) // exiting
-				AddButtonPressedPlayerInputCallback( player, IN_DUCKTOGGLE , OnExitUsed ) // exiting alt button
-
-
-				if (this.config.dualseat == false) {
-					AddButtonPressedPlayerInputCallback( player, IN_ATTACK, OnAttackPressed ) // ship attack
-					AddButtonReleasedPlayerInputCallback( player, IN_ATTACK, OnAttackReleased )
-				}
-
-
-				player.DisableWeaponViewModel()
-				player.SetParent( this.mover )
-
-
-
-				if (this.config.dualseat == true) {
-					if (this.embarkedplayers["driver"] != null && this.embarkedplayers["shooter"] != null) {
+					if (this.config.dualseat == true) {
+						if (this.embarkedplayers["driver"] != null && this.embarkedplayers["shooter"] != null) {
+							this.SetShipOccupied()
+						}
+					} else {
 						this.SetShipOccupied()
 					}
-				} else {
-					this.SetShipOccupied()
+
+
+
+					AddDeathCallback( "player", OnPilotDeath )
+
+					this.ship.Code_SetTeam( player.GetTeam() )
 				}
-
-
-
-				AddDeathCallback( "player", OnPilotDeath )
-
-				this.ship.Code_SetTeam( player.GetTeam() )
-			}
+			}catch(excep) {print(excep)}
 		}
 
 		function Disembark(shouldeject , playerent) /* void */
