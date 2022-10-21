@@ -73,7 +73,6 @@ void function SpaceShipClassesInit()
 
 			this.origMoveTime = expect float (this.config.moveTime)
 
-
 			// create the ship prop
 			this.ship = CreateEntity( "prop_script" )
 			this.ship.SetValueForModelKey( expect asset( this.config.model ) )
@@ -97,6 +96,7 @@ void function SpaceShipClassesInit()
 			// create the ship mover
 			vector shipAngles = expect vector( this.ship.EyeAngles() )
 			this.mover = CreateExpensiveScriptMover( origin, <0, shipAngles.y, shipAngles.z> )
+			this.mover.SetPusher(true) //otherwise you can clip through the ship when standing on it & it can be used to crush titans now >:]
 
 			this.ship.SetParent( this.mover )
 			this.occupationent.SetParent(this.mover)
@@ -141,6 +141,8 @@ void function SpaceShipClassesInit()
 					player.TouchGround()
 					player.ForceStand()
 
+					player.SetParent( this.mover )
+
 					if (this.embarkedplayers["driver"] == null) { //driver
 						this.embarkedplayers["driver"] <- player
 						if(this.config.dualseat == true ){
@@ -158,6 +160,7 @@ void function SpaceShipClassesInit()
 						float upwardCorrection = expect float( this.config.cockpitUpwardCorrection )
 						player.SetOrigin( shipOrigin + (fv * forwardCorrection)   +  (au * upwardCorrection) )
 						player.SetAngles( shipAngles )
+						ViewConeWide(player) //limits view so the driver cant turn ship way too fast
 
 						//only give driver control
 						AddButtonPressedPlayerInputCallback( player, IN_JUMP , OnJumpInput ) // starting / landing
@@ -206,11 +209,7 @@ void function SpaceShipClassesInit()
 						AddButtonReleasedPlayerInputCallback( player, IN_ATTACK, OnAttackReleased )
 					}
 
-
 					player.DisableWeaponViewModel()
-					player.SetParent( this.mover )
-
-
 
 					if (this.config.dualseat == true) {
 						if (this.embarkedplayers["driver"] != null && this.embarkedplayers["shooter"] != null) {
@@ -219,8 +218,6 @@ void function SpaceShipClassesInit()
 					} else {
 						this.SetShipOccupied()
 					}
-
-
 
 					AddDeathCallback( "player", OnPilotDeath )
 
@@ -334,7 +331,7 @@ void function SpaceShipClassesInit()
 					WaitFrame()
 					continue
 				} else if ( IsValid( expect entity( this.ship )) && IsValid( expect entity(this.embarkedplayers["driver"]))  ) {
-					if (!(this.embarkedplayers["driver"].GetViewVector().z < -0.95) && !(this.embarkedplayers["driver"].GetViewVector().z > 0.95)) { //extrmely bad and temporary solution
+					if (!(this.embarkedplayers["driver"].GetViewVector().z < -0.95) && !(this.embarkedplayers["driver"].GetViewVector().z > 0.95)) { //in combination with viewconewide() pretty decent fix for the spinning
 					vector v = expect vector( this.embarkedplayers["driver"].EyeAngles() )
 					v = <v.x,v.y,0>
 
@@ -596,20 +593,22 @@ void function SpaceShipClassesInit()
 		{
 			try{
 				entity player = expect entity (playerent)
-					while(this.gunnerView && player == this.embarkedplayers["shooter"]) {
-						vector origin = expect vector (this.ship.GetOrigin()
-						+ this.ship.GetForwardVector() * expect float(this.config.barrel1cannonPosForward)
-						+ this.ship.GetRightVector() * expect float (this.config.barrel1cannonPosRight)
-						+ AnglesToUp(expect vector(this.ship.GetAngles()))  * -200) //slightly below gun (just gonna hope they dont shoot directly down idk)
+				NSCreateStatusMessageOnPlayer(player,"Gunner View Active","","GUNNERVIEWINFO")
+				while(this.gunnerView && player == this.embarkedplayers["shooter"]) {
+					vector origin = expect vector (this.ship.GetOrigin()
+					+ this.ship.GetForwardVector() * expect float(this.config.barrel1cannonPosForward)
+					+ this.ship.GetRightVector() * expect float (this.config.barrel1cannonPosRight)
+					+ AnglesToUp(expect vector(this.ship.GetAngles()))  * -200) //slightly below gun (just gonna hope they dont shoot directly down idk)
 
-						player.SetOrigin(origin)
-						player.kv.VisibilityFlags = 0
-						player.SetTakeDamageType( DAMAGE_NO )
-						WaitFrame()
-					}
-					player.SetTakeDamageType( DAMAGE_YES )
-					player.kv.VisibilityFlags = ENTITY_VISIBLE_TO_EVERYONE
-					player.SetOrigin(expect vector ( this.ship.GetOrigin()) + (expect vector (this.ship.GetForwardVector()) * expect float( this.config.cockpitForwardCorrectionShooter ))   +  (AnglesToUp( expect vector (this.ship.GetAngles())) *  expect float( this.config.cockpitUpwardCorrectionShooter ) )) //original position
+					player.SetOrigin(origin)
+					player.kv.VisibilityFlags = 0
+					player.SetTakeDamageType( DAMAGE_NO )
+					WaitFrame()
+				}
+				NSDeleteStatusMessageOnPlayer(  player, "GUNNERVIEWINFO" )
+				player.SetTakeDamageType( DAMAGE_YES )
+				player.kv.VisibilityFlags = ENTITY_VISIBLE_TO_EVERYONE
+				player.SetOrigin(expect vector ( this.ship.GetOrigin()) + (expect vector (this.ship.GetForwardVector()) * expect float( this.config.cockpitForwardCorrectionShooter ))   +  (AnglesToUp( expect vector (this.ship.GetAngles())) *  expect float( this.config.cockpitUpwardCorrectionShooter ) )) //original position
 
 			}catch(ex){}
 
@@ -822,6 +821,7 @@ void function OnFreeViewPressed( entity player )
 {
 	if ( player.spaceship ) {
 		player.spaceship.freeView = true
+		ViewConeFree(player)
 	}
 }
 
@@ -829,6 +829,7 @@ void function OnFreeViewReleased( entity player )
 {
 	if ( player.spaceship ) {
 		player.spaceship.freeView = false
+		ViewConeWide(player)
 	}
 }
 
@@ -842,6 +843,7 @@ void function OnGunnerViewPressed (entity player){
 void function OnGunnerViewReleased (entity player){
 	if ( player.spaceship ) {
 		player.spaceship.gunnerView = false
+		NSDeleteStatusMessageOnPlayer(  player, "GUNNERVIEWINFO" ) //mainly just a backup since it is already in the gunnerlookstart function
 	}
 }
 
@@ -996,12 +998,13 @@ void function CreateHitmarkerForPlayer(entity player, vector pos = <0,0,0>) {
 //make gunnerview less janky and add some sort of indicators
 //make kills count for the driver
 
-//add chathook color
-
-
 //X //make the weapon owner the player so kill give points (dk if it works like that) [didnt work]
-//X //try using SOLID_BBOX instead of SOLID_VPHYSICS so i dont have to put that stupid box there [Didn't work , the resulting hitbox is way to large on starton]
+//X //try using SOLID_BBOX instead of SOLID_VPHYSICS so i dont have to put that stupid occupation box there [Didn't work , the resulting hitbox is way to large on starton]
 //X //roll with a/d [was stupid , extremly disoiriantating]
 
 //done: moveslow doesnt work on controler //used player.GetInputAxisForward() as a workaround
 //sorta done , might want to change that later: make beter speed control
+
+//done: add chathook color //used the new serverside rui instead
+//done: add serverside rui
+//done: make ship solid //setpusher(true) worked
