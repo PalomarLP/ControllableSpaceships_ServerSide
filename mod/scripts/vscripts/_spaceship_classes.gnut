@@ -33,7 +33,6 @@ void function SpaceShipClassesInit()
 	//Precache fx
 	PrecacheParticleSystem( FX_MEGA_TURRECT_IMPACT_EXPLOSION )
 
-
 	// add a property to the player class to store their ship
 	CPlayer.spaceship <- null
 
@@ -641,6 +640,8 @@ void function SpaceShipClassesInit()
 			}catch(ex) {print(ex)}
 		}
 
+
+
 		function ConfigFromType( string type )
 		{
 			var config = {}
@@ -895,7 +896,13 @@ void function DeregisterAllButtons( entity player )
 	RemoveButtonPressedPlayerInputCallback( player, IN_DUCK , OnExitUsed )
 	RemoveButtonPressedPlayerInputCallback( player, IN_ZOOM , OnFreeViewPressed )
 	RemoveButtonReleasedPlayerInputCallback( player, IN_ZOOM, OnFreeViewReleased )
+	RemoveButtonPressedPlayerInputCallback( player, IN_ZOOM_TOGGLE , OnFreeViewPressed )
+	RemoveButtonReleasedPlayerInputCallback( player, IN_ZOOM_TOGGLE, OnFreeViewReleased )
 	RemoveButtonPressedPlayerInputCallback( player, IN_ATTACK, OnAttackPressed )
+	RemoveButtonPressedPlayerInputCallback( player, IN_ZOOM , OnGunnerViewPressed )
+	RemoveButtonReleasedPlayerInputCallback( player, IN_ZOOM, OnGunnerViewReleased )
+	RemoveButtonPressedPlayerInputCallback( player, IN_ZOOM_TOGGLE ,  OnGunnerViewPressed )
+	RemoveButtonReleasedPlayerInputCallback( player, IN_ZOOM_TOGGLE, OnGunnerViewReleased )
 }
 
 vector function FindNearestSafeDisembarkPos(entity player, vector targetPos, int severity)
