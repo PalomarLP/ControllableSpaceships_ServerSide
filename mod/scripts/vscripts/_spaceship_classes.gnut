@@ -159,7 +159,8 @@ void function SpaceShipClassesInit()
 						float upwardCorrection = expect float( this.config.cockpitUpwardCorrection )
 						player.SetOrigin( shipOrigin + (fv * forwardCorrection)   +  (au * upwardCorrection) )
 						player.SetAngles( shipAngles )
-						ViewConeWide(player) //limits view so the driver cant turn ship way too fast
+						ViewConeWideInstant(player) //limits view so the driver cant turn ship way too fast
+
 
 						//only give driver control
 						AddButtonPressedPlayerInputCallback( player, IN_JUMP , OnJumpInput ) // starting / landing
@@ -170,8 +171,6 @@ void function SpaceShipClassesInit()
 						AddButtonReleasedPlayerInputCallback( player, IN_ZOOM_TOGGLE, OnFreeViewReleased ) // freeview end alt button
 
 						//forward backswards is tracked in StartMoveControlTracking()
-
-
 
 					} else if (this.embarkedplayers["shooter"] == null && this.config.dualseat == true) { //gunner
 						this.embarkedplayers["shooter"] <- player
@@ -785,7 +784,7 @@ var function OnShipUsed( var prop, var player )
 	var spaceship = spaceships[prop]
 
 	if (spaceship.embarkedplayers["driver"] != player && spaceship.embarkedplayers["shooter"] != player) {
-		spaceship.Embark( player )
+		thread spaceship.Embark( player )
 	}
 
 }
@@ -830,7 +829,7 @@ void function OnFreeViewReleased( entity player )
 {
 	if ( player.spaceship ) {
 		player.spaceship.freeView = false
-		ViewConeWide(player)
+		ViewConeWideInstant(player)
 	}
 }
 
@@ -995,6 +994,19 @@ void function CreateHitmarkerForPlayer(entity player, vector pos = <0,0,0>) {
 		guy.Destroy()
 	}catch(ex) {print(ex)}
 
+}
+
+void function ViewConeWideInstant( entity player )
+{
+	if ( !player.IsPlayer() )
+		return
+	player.PlayerCone_SetLerpTime( 0.0 )
+
+	player.PlayerCone_FromAnim()
+	player.PlayerCone_SetMinYaw( -50 )
+	player.PlayerCone_SetMaxYaw( 50 )
+	player.PlayerCone_SetMinPitch( -35 )
+	player.PlayerCone_SetMaxPitch( 35 )
 }
 
 
