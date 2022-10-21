@@ -2,7 +2,7 @@
 	"Name": "Controllable Spaceships",
 	"Description": "Adds Spaceship Classes that can be used by other Mods.",
 	"Version": "1.5",
-	"LoadPriority": 3,
+	"LoadPriority": 2,
 	"RequiredOnClient": false,
 	"ConVars": [],
 	"Scripts": [

@@ -142,7 +142,13 @@ void function SpaceShipClassesInit()
 
 				if (this.embarkedplayers["driver"] == null) { //driver
 					this.embarkedplayers["driver"] <- player
-					if(this.config.dualseat == true ){Chat_ServerPrivateMessage(player,"\x1b[33mYou embarked a ship as a \x1b[31mdriver!\x1b[0m", false)} else {Chat_ServerPrivateMessage(player,"\x1b[33mYou embarked a ship!\x1b[0m", false)}
+					if(this.config.dualseat == true ){
+						//Chat_ServerPrivateMessage(player,"\x1b[33mYou embarked a ship as a \x1b[31mdriver!\x1b[0m", false)
+						NSSendInfoMessageToPlayer( player, "Embarked a Ship as a Driver" )
+					} else {
+						//Chat_ServerPrivateMessage(player,"\x1b[33mYou embarked a ship!\x1b[0m", false)
+						NSSendInfoMessageToPlayer( player, "Embarked a Ship" )
+					}
 
 					vector au = AnglesToUp( shipAngles )
 					vector fv = expect vector (this.ship.GetForwardVector())
@@ -166,7 +172,8 @@ void function SpaceShipClassesInit()
 
 				} else if (this.embarkedplayers["shooter"] == null && this.config.dualseat == true) { //gunner
 					this.embarkedplayers["shooter"] <- player
-					Chat_ServerPrivateMessage(player,"\x1b[33mYou embarked a ship as a \x1b[31mgunner!\x1b[0m", false)
+					//Chat_ServerPrivateMessage(player,"\x1b[33mYou embarked a ship as a \x1b[31mgunner!\x1b[0m", false)
+					NSSendInfoMessageToPlayer( player, "Embarked a Ship as Gunner" )
 
 					vector au = AnglesToUp( shipAngles )
 					vector fv = expect vector (this.ship.GetForwardVector())
