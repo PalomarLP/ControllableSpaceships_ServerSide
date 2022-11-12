@@ -145,11 +145,9 @@ void function SpaceShipClassesInit()
 					if (this.embarkedplayers["driver"] == null) { //driver
 						this.embarkedplayers["driver"] <- player
 						if(this.config.dualseat == true ){
-							//Chat_ServerPrivateMessage(player,"\x1b[33mYou embarked a ship as a \x1b[31mdriver!\x1b[0m", false)
-							NSSendInfoMessageToPlayer( player, "Embarked a Ship as a Driver" )
+							NSSendPopUpMessageToPlayer( player, "Embarked a Ship as a Driver" ) //Chat_ServerPrivateMessage(player,"\x1b[33mYou embarked a ship as a \x1b[31mdriver!\x1b[0m", false)
 						} else {
-							//Chat_ServerPrivateMessage(player,"\x1b[33mYou embarked a ship!\x1b[0m", false)
-							NSSendInfoMessageToPlayer( player, "Embarked a Ship" )
+							NSSendPopUpMessageToPlayer( player, "Embarked a Ship" ) //Chat_ServerPrivateMessage(player,"\x1b[33mYou embarked a ship!\x1b[0m", false)
 						}
 
 						vector au = AnglesToUp( shipAngles )
@@ -159,8 +157,6 @@ void function SpaceShipClassesInit()
 						float upwardCorrection = expect float( this.config.cockpitUpwardCorrection )
 						player.SetOrigin( shipOrigin + (fv * forwardCorrection)   +  (au * upwardCorrection) )
 						player.SetAngles( shipAngles )
-						ViewConeWideInstant(player) //limits view so the driver cant turn ship way too fast
-
 
 						//only give driver control
 						AddButtonPressedPlayerInputCallback( player, IN_JUMP , OnJumpInput ) // starting / landing
@@ -174,8 +170,7 @@ void function SpaceShipClassesInit()
 
 					} else if (this.embarkedplayers["shooter"] == null && this.config.dualseat == true) { //gunner
 						this.embarkedplayers["shooter"] <- player
-						//Chat_ServerPrivateMessage(player,"\x1b[33mYou embarked a ship as a \x1b[31mgunner!\x1b[0m", false)
-						NSSendInfoMessageToPlayer( player, "Embarked a Ship as Gunner" )
+						NSSendPopUpMessageToPlayer( player, "Embarked a Ship as Gunner" ) //Chat_ServerPrivateMessage(player,"\x1b[33mYou embarked a ship as a \x1b[31mgunner!\x1b[0m", false)
 
 						vector au = AnglesToUp( shipAngles )
 						vector fv = expect vector (this.ship.GetForwardVector())
@@ -361,9 +356,12 @@ void function SpaceShipClassesInit()
 
 				this.mover.ClearParent()
 
+				ViewConeWideInstant(expect entity (this.embarkedplayers["driver"])) //limits view so the driver cant turn ship way too fast
+
 				this.mover.NonPhysicsMoveTo(
 					expect vector( this.ship.GetOrigin() + <0,0,this.config.startheight> ),
 					expect float( this.startManeuverTime ), 0.5,0.5 )
+
 
 				thread void function() {
 					this.inManeuver = true
@@ -821,7 +819,6 @@ void function OnFreeViewPressed( entity player )
 {
 	if ( player.spaceship ) {
 		player.spaceship.freeView = true
-		ViewConeFree(player)
 	}
 }
 
@@ -829,7 +826,6 @@ void function OnFreeViewReleased( entity player )
 {
 	if ( player.spaceship ) {
 		player.spaceship.freeView = false
-		ViewConeWideInstant(player)
 	}
 }
 
@@ -1005,8 +1001,8 @@ void function ViewConeWideInstant( entity player )
 	player.PlayerCone_FromAnim()
 	player.PlayerCone_SetMinYaw( -50 )
 	player.PlayerCone_SetMaxYaw( 50 )
-	player.PlayerCone_SetMinPitch( -35 )
-	player.PlayerCone_SetMaxPitch( 35 )
+	player.PlayerCone_SetMinPitch( -40 )
+	player.PlayerCone_SetMaxPitch( 40 )
 }
 
 
