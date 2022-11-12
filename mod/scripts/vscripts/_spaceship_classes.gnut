@@ -144,11 +144,6 @@ void function SpaceShipClassesInit()
 
 					if (this.embarkedplayers["driver"] == null) { //driver
 						this.embarkedplayers["driver"] <- player
-						if(this.config.dualseat == true ){
-							NSSendPopUpMessageToPlayer( player, "Embarked a Ship as a Driver" ) //Chat_ServerPrivateMessage(player,"\x1b[33mYou embarked a ship as a \x1b[31mdriver!\x1b[0m", false)
-						} else {
-							NSSendPopUpMessageToPlayer( player, "Embarked a Ship" ) //Chat_ServerPrivateMessage(player,"\x1b[33mYou embarked a ship!\x1b[0m", false)
-						}
 
 						vector au = AnglesToUp( shipAngles )
 						vector fv = expect vector (this.ship.GetForwardVector())
@@ -166,11 +161,16 @@ void function SpaceShipClassesInit()
 						AddButtonPressedPlayerInputCallback( player, IN_ZOOM_TOGGLE , OnFreeViewPressed ) // freeview start alt button
 						AddButtonReleasedPlayerInputCallback( player, IN_ZOOM_TOGGLE, OnFreeViewReleased ) // freeview end alt button
 
+
+						//status messages for driver
+						NSCreateStatusMessageOnPlayer(player,"EMBARKED AS DRIVER","", "SHIPSTATUS")
+						NSCreateStatusMessageOnPlayer(player,"SPEED: ","", "SHIPSPEED")
+
+
 						//forward backswards is tracked in StartMoveControlTracking()
 
 					} else if (this.embarkedplayers["shooter"] == null && this.config.dualseat == true) { //gunner
 						this.embarkedplayers["shooter"] <- player
-						NSSendPopUpMessageToPlayer( player, "Embarked a Ship as Gunner" ) //Chat_ServerPrivateMessage(player,"\x1b[33mYou embarked a ship as a \x1b[31mgunner!\x1b[0m", false)
 
 						vector au = AnglesToUp( shipAngles )
 						vector fv = expect vector (this.ship.GetForwardVector())
@@ -188,10 +188,17 @@ void function SpaceShipClassesInit()
 						AddButtonReleasedPlayerInputCallback( player, IN_ZOOM, OnGunnerViewReleased )
 						AddButtonPressedPlayerInputCallback( player, IN_ZOOM_TOGGLE ,  OnGunnerViewPressed )
 						AddButtonReleasedPlayerInputCallback( player, IN_ZOOM_TOGGLE, OnGunnerViewReleased )
+
+						//status messages for shooter
+						NSCreateStatusMessageOnPlayer(player,"EMBARKED AS GUNNER","", "SHIPSTATUS")
 					}
 
 					this.PlayShipInfoSound("HUD_Boost_Card_Radar_Jammer_RedTextBeep_1P",true) //beepclick sound
 					this.PlayShipInfoSound("titan_eject_xbutton",true)
+
+					//status messages for both
+					NSCreateStatusMessageOnPlayer(player,"HEALTH:","", "SHIPHEALTH")
+					thread this.UpdateHealthStatusMsg(player)
 
 					AddButtonPressedPlayerInputCallback( player, IN_DUCK , OnExitUsed ) // exiting
 					AddButtonPressedPlayerInputCallback( player, IN_DUCKTOGGLE , OnExitUsed ) // exiting alt button
@@ -224,8 +231,6 @@ void function SpaceShipClassesInit()
 			if(!IsValid(playerent)) {
 				return
 			}
-
-
 
 			entity player = expect entity(playerent)
 			player.spaceship = null
@@ -271,6 +276,11 @@ void function SpaceShipClassesInit()
 				player.SetOrigin(FindNearestSafeDisembarkPos(player, player.GetOrigin() , 1) )
 			}
 
+			//status delete
+			NSDeleteStatusMessageOnPlayer( player, "SHIPSPEED"  )
+			NSDeleteStatusMessageOnPlayer( player, "SHIPSTATUS")
+			NSDeleteStatusMessageOnPlayer( player, "SHIPHEALTH")
+
 			this.ship.Code_SetTeam( TEAM_UNASSIGNED )
 		}
 
@@ -294,10 +304,19 @@ void function SpaceShipClassesInit()
 		}
 
 		function StartMoveControlTracking() {
+
+			float lowermovetimelimit = 3.0
+
+			//status message math setup
+			//i just did this and I already dont know how it works
+			float maxreversed = (expect float (this.origMoveTime - lowermovetimelimit)) * -1
+			float onetile = maxreversed / 45
+
 			while (IsValid(expect entity (this.ship))) {
 				try {
 				if (this.embarkedplayers["driver"]) {
-					if(this.embarkedplayers["driver"].GetInputAxisForward() < 0 && expect float (this.config.moveTime) < 3) { //slow down
+					//control
+					if(this.embarkedplayers["driver"].GetInputAxisForward() < 0 && expect float (this.config.moveTime) < lowermovetimelimit) { //slow down
 						this.config.moveTime = this.config.moveTime * 1.15
 					}
 					if (this.embarkedplayers["driver"].GetInputAxisForward() > 0 && expect float (this.config.moveTime) > this.origMoveTime){ //speed up
@@ -307,6 +326,16 @@ void function SpaceShipClassesInit()
 					if (this.config.moveTime < this.origMoveTime ) { //limit
 						this.config.moveTime = this.origMoveTime
 					}
+
+					//status message math/edit
+					float tiles = ((expect float (this.config.moveTime) - lowermovetimelimit) * -1) / onetile
+					string tilestring = "|"
+					while (tiles > 1) {
+					   tilestring = tilestring + "|"
+					   tiles = tiles -1
+					}
+
+					NSEditStatusMessageOnPlayer (expect entity (this.embarkedplayers["driver"]),"SPEED:      " + tilestring,"", "SHIPSPEED");
 
 				}
 				}catch(ex) {print(ex)}
@@ -637,6 +666,26 @@ void function SpaceShipClassesInit()
 			}catch(ex) {print(ex)}
 		}
 
+		function UpdateHealthStatusMsg(player) {
+			//status message
+			if (IsValid (expect entity (player)) && IsValid(this.ship)) {
+
+				entity player = expect entity (player)
+
+				float onetile = float(this.config.health) / 45
+				float tiles = expect int(this.ship.GetHealth()) / onetile
+
+				string tilestring = "|"
+				while (tiles > 1) {
+					tilestring = tilestring + "|"
+					tiles = tiles -1
+				}
+
+				NSEditStatusMessageOnPlayer (player,"HEALTH:   " + tilestring,"", "SHIPHEALTH")
+
+			}
+		}
+
 
 
 		function ConfigFromType( string type )
@@ -769,9 +818,13 @@ void function OnShipDamaged( entity ship, var damageInfo )
 		spaceships[ship].Explode()
 	}
 
+	foreach (key,value in spaceships[ship].embarkedplayers) {
+		spaceships[ship].UpdateHealthStatusMsg(value)
+	}
 
 
 }
+
 
 
 /////////////////////////////////////Input-Callbacks//////////////////////////////////////////////////
@@ -865,6 +918,10 @@ void function OnPilotDeath( entity player, var damageInfo )
 	player.spaceship.Disembark(false , player)
 	player.SetTakeDamageType( DAMAGE_YES )
 	player.kv.VisibilityFlags = ENTITY_VISIBLE_TO_EVERYONE
+	NSDeleteStatusMessageOnPlayer( player, "SHIPSPEED"  )
+	NSDeleteStatusMessageOnPlayer( player, "SHIPSTATUS")
+	NSDeleteStatusMessageOnPlayer( player, "SHIPHEALTH")
+
 	}catch(ex){}
 }
 
